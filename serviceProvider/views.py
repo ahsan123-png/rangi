@@ -80,7 +80,7 @@ def registerServiceProvider(request) -> JsonResponse:
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 #===============GET All service provider============
 @csrf_exempt
-def getServiceProviders(request) -> JsonResponse:
+def getAllServiceProviders(request) -> JsonResponse:
     if request.method == 'GET':
         service_providers = ServiceProvider.objects.all()
         result = []
@@ -91,12 +91,56 @@ def getServiceProviders(request) -> JsonResponse:
                 'email': provider.user.email,
                 'phone_number': provider.phone_number,
                 'address': provider.user.address,
-                'zip_code': provider.user.zip_code,
+                'zip_code': provider.user.zipCode,
                 'company_name': provider.company_name,
                 'category': provider.category.name,
                 'subcategory': provider.subcategory.name,
                 'number_of_people': provider.number_of_people,
                 'status': provider.status
             })
-        return JsonResponse(result, safe=False, status=200)
+        return JsonResponse(
+            good_response(
+                request.method,
+                {"all_service_provider": result},status=200
+            )
+        )
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+#==================update service provider employee =================
+@csrf_exempt
+def updateServiceProvider(request, provider_id) -> JsonResponse:
+    if request.method == 'PUT':
+        try:
+            data = get_request_body(request)
+        except ValueError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        try:
+            provider = ServiceProvider.objects.get(id=provider_id)
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': 'Service provider not found'}, status=404)
+        provider.user.first_name = data.get('first_name', provider.user.first_name)
+        provider.user.last_name = data.get('last_name', provider.user.last_name)
+        provider.user.email = data.get('email', provider.user.email)
+        provider.phone_number = data.get('phone_number', provider.phone_number)
+        provider.company_name = data.get('company_name', provider.company_name)
+        provider.user.address = data.get('address', provider.user.address)
+        provider.user.zip_code = data.get('zip_code', provider.user.zip_code)
+        category_id = data.get('category')
+        subcategory_id = data.get('subcategory')
+        if category_id:
+            try:
+                category = Category.objects.get(id=category_id)
+                provider.category = category
+            except ObjectDoesNotExist:
+                return JsonResponse({'error': 'Category does not exist'}, status=400)
+        if subcategory_id:
+            try:
+                subcategory = Subcategory.objects.get(id=subcategory_id)
+                provider.subcategory = subcategory
+            except ObjectDoesNotExist:
+                return JsonResponse({'error': 'Subcategory does not exist'}, status=400)
+        provider.number_of_people = data.get('number_of_people', provider.number_of_people)
+        provider.status = data.get('status', provider.status)
+        provider.user.save()
+        provider.save()
+        return JsonResponse({'message': 'Service provider updated successfully'}, status=200)
     return JsonResponse({'error': 'Method not allowed'}, status=405)
