@@ -108,7 +108,7 @@ def getAllServiceProviders(request) -> JsonResponse:
 #==================update service provider employee =================
 @csrf_exempt
 def updateServiceProvider(request, provider_id) -> JsonResponse:
-    if request.method == 'PUT':
+    if request.method == 'PATCH': # patch is used for if we want to update all felids in the service provider
         try:
             data = get_request_body(request)
         except ValueError:
@@ -116,14 +116,18 @@ def updateServiceProvider(request, provider_id) -> JsonResponse:
         try:
             provider = ServiceProvider.objects.get(id=provider_id)
         except ObjectDoesNotExist:
-            return JsonResponse({'error': 'Service provider not found'}, status=404)
+            return JsonResponse(
+                bad_response(request.method,
+                             {'error': 'Service provider not found'}, status=404)
+            )
         provider.user.first_name = data.get('first_name', provider.user.first_name)
         provider.user.last_name = data.get('last_name', provider.user.last_name)
         provider.user.email = data.get('email', provider.user.email)
         provider.phone_number = data.get('phone_number', provider.phone_number)
         provider.company_name = data.get('company_name', provider.company_name)
         provider.user.address = data.get('address', provider.user.address)
-        provider.user.zip_code = data.get('zip_code', provider.user.zip_code)
+        provider.user.zipCode = data.get('zipCode', provider.user.zipCode)
+        provider.phone_number = clean_phone_number(provider.phone_number)
         category_id = data.get('category')
         subcategory_id = data.get('subcategory')
         if category_id:
@@ -131,16 +135,104 @@ def updateServiceProvider(request, provider_id) -> JsonResponse:
                 category = Category.objects.get(id=category_id)
                 provider.category = category
             except ObjectDoesNotExist:
-                return JsonResponse({'error': 'Category does not exist'}, status=400)
+                return JsonResponse(bad_response(
+                    request.method,
+                    {'error': 'Category does not exist'}, status=400
+                ))
         if subcategory_id:
             try:
                 subcategory = Subcategory.objects.get(id=subcategory_id)
                 provider.subcategory = subcategory
             except ObjectDoesNotExist:
-                return JsonResponse({'error': 'Subcategory does not exist'}, status=400)
+                return JsonResponse(bad_response(
+                    request.method,
+                    {'error': 'Category does not exist'}, status=400
+                ))
         provider.number_of_people = data.get('number_of_people', provider.number_of_people)
         provider.status = data.get('status', provider.status)
         provider.user.save()
         provider.save()
-        return JsonResponse({'message': 'Service provider updated successfully'}, status=200)
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
+        return JsonResponse(
+            good_response(request.method,
+                         {'message': 'Service provider updated successfully'}, status=200)
+    
+        )
+    return JsonResponse(
+        bad_response(request.method,
+                         {'error': 'Method not allowed'}, status=405)
+    )
+#==================== Get a single service provider =============================
+@csrf_exempt
+def getServiceProvider(request, provider_id) -> JsonResponse:
+    if request.method == 'GET':
+        try:
+            service_provider = ServiceProvider.objects.get(id=provider_id)
+            provider_data = {
+                'id': service_provider.id,
+                'username': service_provider.user.username,
+                'email': service_provider.user.email,
+                'phone_number': service_provider.phone_number,
+                'address': service_provider.user.address,
+                'zip_code': service_provider.user.zipCode,
+                'company_name': service_provider.company_name,
+                'category': service_provider.category.name,
+                'subcategory': service_provider.subcategory.name,
+                'number_of_people': service_provider.number_of_people,
+                'status': service_provider.status
+            }
+            return JsonResponse(
+                good_response(request.method, 
+                            {'service_provider': provider_data}, status=200)
+            )
+        except ServiceProvider.DoesNotExist:
+            return JsonResponse(
+                bad_response(request.method, 
+                             {'error': 'Service provider not found'}, status=404)
+            )
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse(bad_response(request.method,
+                                     {'error': 'Method not allowed'}, status=405))
+#================== Delete Service Provider =============================
+@csrf_exempt
+def deleteServiceProvider(request, provider_id) -> JsonResponse:
+    if request.method == 'DELETE':
+        try:
+            provider = ServiceProvider.objects.get(id=provider_id)
+            provider.user.delete()  # This deletes both the service provider and the user.
+            return JsonResponse(
+                good_response(request.method, 
+                             {'message': 'Service provider and user deleted successfully'}, status=200)
+            )
+        except ObjectDoesNotExist:
+            return JsonResponse(
+                bad_response(request.method, 
+                             {'error': 'Service provider not found'}, status=404)
+            )
+    return JsonResponse(
+        bad_response(request.method, 
+                             {'error': 'Method not allowed'}, status=405)
+    )
+
+
+
+
+# @csrf_exempt
+# def deleteCategory(request, category_id) -> JsonResponse:
+#     if request.method == 'DELETE':
+#         try:
+#             category = Category.objects.get(id=category_id)
+#             category.delete()
+#             return JsonResponse(
+#                 good_response(request.method, 
+#                              {'message': 'Category deleted successfully'}, status=200)
+#             )
+#         except ObjectDoesNotExist:
+#             return JsonResponse(
+#                 bad_response(request.method, 
+#                              {'error': 'Category not found'}, status=404)
+#             )
+#     return JsonResponse(
+#         bad_response(request.method, 
+#                              {'error': 'Method not allowed'}, status=405)
+#     )
