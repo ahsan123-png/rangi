@@ -6,10 +6,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
-# Create your views here.
 import json
 import re
-
+# Create your views here.
 @csrf_exempt
 def registerServiceProvider(request) -> JsonResponse:
     if request.method == 'POST':
