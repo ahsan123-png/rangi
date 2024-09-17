@@ -15,7 +15,6 @@ class UserEx(User):
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
-    description = models.TextField(null=True, blank=True)
     status = models.BooleanField(default=True)
 
     def __str__(self):
@@ -71,7 +70,7 @@ class Employee(models.Model):
 
 # Customer model (the person who hires service providers)
 class Customer(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)  # Links to the default Django User model
+    user = models.OneToOneField(UserEx, on_delete=models.CASCADE)  # Links to the default Django User model
     phone_number = models.CharField(max_length=15)
 
     def __str__(self):

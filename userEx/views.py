@@ -16,16 +16,23 @@ def addCategory(request):
         try:
             data = get_request_body(request)
             category_name = data.get("category_name")
-            category_description = data.get("description", "")
             if not category_name:
-                return JsonResponse({"error": "Category name is required"}, status=400)
-            category = Category(name=category_name, description=category_description)
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {"error": "Category name is required"},status=400 
+                ))
+            if Category.objects.filter(name=category_name).exists():
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {"error": "Category already exists"}, status=400))
+            category = Category(name=category_name)
             category.save()
             return JsonResponse({
                 "message": "Category added successfully",
                 "category_id": category.id,
                 "category_name": category.name,
-                "category_description": category.description,
             }, status=201)
         except ValidationError as e:
             return JsonResponse({"error": str(e)}, status=400)
@@ -43,13 +50,26 @@ def addSubcategory(request):
             subcategory_description = data.get("description", "")
             category_id = data.get("category_id")
             if not subcategory_name:
-                return JsonResponse({"error": "Subcategory name is required"}, status=400)
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {"error": "Subcategory name is required"}, status=400)
+                )
             if not category_id:
-                return JsonResponse({"error": "Category ID is required"}, status=400)
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {"error": "Category id is required"}, status=400)
+                )
             try:
                 category = Category.objects.get(id=category_id)
             except ObjectDoesNotExist:
                 return JsonResponse({"error": "Category does not exist"}, status=400)
+            if Subcategory.objects.filter(name=subcategory_name).exists():
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {"error": "Category already exists"}, status=400))
             subcategory = Subcategory(name=subcategory_name, description=subcategory_description, category=category)
             subcategory.save()
             return JsonResponse({
@@ -61,11 +81,243 @@ def addSubcategory(request):
                 "category_name": subcategory.category.name,
             }, status=201)
         except ValidationError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"error": str(e)}, status=400)
+                )
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"error": str(e)}, status=500)
+            )
     else:
-        return JsonResponse({"error": "Only POST requests are allowed"}, status=405)
+        return JsonResponse(
+            bad_response(
+                request.method,
+                {"error": "Only POST requests are allowed"}, status=405)
+    
+        )
+#===================== Category Cruds Operations =============================
+#Get all categories
+@csrf_exempt
+def getCategories(request) -> JsonResponse:
+    if request.method == 'GET':
+        categories = Category.objects.all()
+        result = []
+        for category in categories:
+            result.append({
+                'id': category.id,
+                'name': category.name,
+                'status': category.status,
+            })
+        return JsonResponse(
+            good_response(
+                request.method,
+                {"categories": result},status=200
+            )
+        )
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+# Get a single category
+@csrf_exempt
+def getCategory(request, category_id) -> JsonResponse:
+    if request.method == 'GET':
+        try:
+            category = Category.objects.get(id=category_id)
+            provider_data = {
+                'id': category.id,
+                'name': category.name,
+                'status': category.status,
+            }
+            return JsonResponse(
+                good_response(request.method, 
+                            {'category': provider_data}, status=200)
+            )
+        except ServiceProvider.DoesNotExist:
+            return JsonResponse(
+                bad_response(request.method, 
+                             {'error': 'Category not found'}, status=404)
+            )
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse(bad_response(request.method,
+                                     {'error': 'Method not allowed'}, status=405))
+# Update Category
+@csrf_exempt
+def updateCategory(request, category_id) -> JsonResponse:
+    if request.method == 'PATCH':
+        try:
+            data = json.loads(request.body)
+        except ValueError:
+            return JsonResponse(
+                bad_response(
+                    request.method, 
+                             {'error': 'Invalid JSON'}, status=400)
+                )
+        try:
+            category = Category.objects.get(id=category_id)
+        except ObjectDoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method, 
+                             {'error': 'Category not found'}, status=404)
+            )
+        category.name = data.get('name', category.name)
+        category.status = data.get('status', category.status)
+        category.save()
+        return JsonResponse(
+            good_response(request.method, 
+                            {'message': 'Category updated successfully'}, status=200)
+        )
+    return JsonResponse(
+        bad_response(request.method, 
+                             {'error': 'Method not allowed'}, status=405)
+    )
+# Delete category
+@csrf_exempt
+def deleteCategory(request, category_id) -> JsonResponse:
+    if request.method == 'DELETE':
+        try:
+            category = Category.objects.get(id=category_id)
+            category.delete()
+            return JsonResponse(
+                good_response(
+                    request.method, 
+                            {'message': 'Category deleted successfully'}, status=200)
+            )
+        except ObjectDoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method, 
+                             {'error': 'Category not found'}, status=404)
+            )
+    return JsonResponse(
+        bad_response(request.method, 
+                             {'error': 'Method not allowed'}, status=405)
+    )
+
+#===================== Subcategory Cruds Operations =============================
+@csrf_exempt
+def getSubcategories(request) -> JsonResponse:
+    if request.method == 'GET':
+        subcategories = Subcategory.objects.all()
+        result = []
+        for subcategory in subcategories:
+            result.append({
+                'id': subcategory.id,
+                'name': subcategory.name,
+                'description': subcategory.description,
+                'category': subcategory.category.name,
+                'status': subcategory.status
+            })
+        return JsonResponse(result, safe=False, status=200)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+# Get Category
+@csrf_exempt
+def getSubCategory(request, category_id) -> JsonResponse:
+    if request.method == 'GET':
+        try:
+            subcategory = Subcategory.objects.get(id=category_id)
+            provider_data = {
+                'id': subcategory.id,
+                'name': subcategory.name,
+                'description': subcategory.description,
+                'category': subcategory.category,
+                'status': subcategory.status,
+            }
+            return JsonResponse(
+                good_response(request.method, 
+                            {'category': provider_data}, status=200)
+            )
+        except ServiceProvider.DoesNotExist:
+            return JsonResponse(
+                bad_response(request.method, 
+                             {'error': 'Category not found'}, status=404)
+            )
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse(bad_response(request.method,
+                                     {'error': 'Method not allowed'}, status=405))
+#update sub category with id
+@csrf_exempt
+def updateSubcategory(request, subcategory_id) -> JsonResponse:
+    if request.method == 'PATCH':
+        try:
+            data = get_request_body(request)
+        except ValueError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        try:
+            subcategory = Subcategory.objects.get(id=subcategory_id)
+        except ObjectDoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method, 
+                             {'error': 'Subcategory not found'}, status=404)
+                )
+        subcategory.name = data.get('name', subcategory.name)
+        subcategory.description = data.get('description', subcategory.description)
+        subcategory.status = data.get('status', subcategory.status)
+        category_id = data.get('category', subcategory.category.id)
+        if category_id:
+            try:
+                category = Category.objects.get(id=category_id)
+                subcategory.category = category
+            except ObjectDoesNotExist:
+                return JsonResponse(
+                    bad_response(
+                        request.method, 
+                                 {'error': 'Category not found'}, status=404)
+                )
+        subcategory.save()
+        return JsonResponse(
+            good_response(request.method, 
+                            {'message': 'Subcategory updated successfully'}, status=200)
+        )
+    return JsonResponse(
+        bad_response(request.method, 
+                             {'error': 'Method not allowed'}, status=405)
+    )
+# Delete subcategory
+@csrf_exempt
+def deleteSubCategory(request, category_id) -> JsonResponse:
+    if request.method == 'DELETE':
+        try:
+            category = Subcategory.objects.get(id=category_id)
+            category.delete()
+            return JsonResponse(
+                good_response(
+                    request.method, 
+                            {'message': 'Category deleted successfully'}, status=200)
+            )
+        except ObjectDoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method, 
+                             {'error': 'Category not found'}, status=404)
+            )
+    return JsonResponse(
+        bad_response(request.method, 
+                             {'error': 'Method not allowed'}, status=405)
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
