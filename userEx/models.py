@@ -15,7 +15,6 @@ class UserEx(User):
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
-    description = models.TextField(null=True, blank=True)
     status = models.BooleanField(default=True)
 
     def __str__(self):

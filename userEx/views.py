@@ -16,16 +16,23 @@ def addCategory(request):
         try:
             data = get_request_body(request)
             category_name = data.get("category_name")
-            category_description = data.get("description", "")
             if not category_name:
-                return JsonResponse({"error": "Category name is required"}, status=400)
-            category = Category(name=category_name, description=category_description)
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {"error": "Category name is required"},status=400 
+                ))
+            if Category.objects.filter(name=category_name).exists():
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {"error": "Category already exists"}, status=400))
+            category = Category(name=category_name)
             category.save()
             return JsonResponse({
                 "message": "Category added successfully",
                 "category_id": category.id,
                 "category_name": category.name,
-                "category_description": category.description,
             }, status=201)
         except ValidationError as e:
             return JsonResponse({"error": str(e)}, status=400)
@@ -43,13 +50,26 @@ def addSubcategory(request):
             subcategory_description = data.get("description", "")
             category_id = data.get("category_id")
             if not subcategory_name:
-                return JsonResponse({"error": "Subcategory name is required"}, status=400)
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {"error": "Subcategory name is required"}, status=400)
+                )
             if not category_id:
-                return JsonResponse({"error": "Category ID is required"}, status=400)
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {"error": "Category id is required"}, status=400)
+                )
             try:
                 category = Category.objects.get(id=category_id)
             except ObjectDoesNotExist:
                 return JsonResponse({"error": "Category does not exist"}, status=400)
+            if Subcategory.objects.filter(name=subcategory_name).exists():
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {"error": "Category already exists"}, status=400))
             subcategory = Subcategory(name=subcategory_name, description=subcategory_description, category=category)
             subcategory.save()
             return JsonResponse({
@@ -61,11 +81,24 @@ def addSubcategory(request):
                 "category_name": subcategory.category.name,
             }, status=201)
         except ValidationError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"error": str(e)}, status=400)
+                )
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"error": str(e)}, status=500)
+            )
     else:
-        return JsonResponse({"error": "Only POST requests are allowed"}, status=405)
+        return JsonResponse(
+            bad_response(
+                request.method,
+                {"error": "Only POST requests are allowed"}, status=405)
+    
+        )
 #===================== Category Cruds Operations =============================
 #Get all categories
 @csrf_exempt
@@ -77,7 +110,6 @@ def getCategories(request) -> JsonResponse:
             result.append({
                 'id': category.id,
                 'name': category.name,
-                'description': category.description,
                 'status': category.status,
             })
         return JsonResponse(
@@ -96,7 +128,6 @@ def getCategory(request, category_id) -> JsonResponse:
             provider_data = {
                 'id': category.id,
                 'name': category.name,
-                'description': category.description,
                 'status': category.status,
             }
             return JsonResponse(
@@ -133,7 +164,6 @@ def updateCategory(request, category_id) -> JsonResponse:
                              {'error': 'Category not found'}, status=404)
             )
         category.name = data.get('name', category.name)
-        category.description = data.get('description', category.description)
         category.status = data.get('status', category.status)
         category.save()
         return JsonResponse(
