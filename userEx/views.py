@@ -223,12 +223,15 @@ def getSubCategory(request, category_id) -> JsonResponse:
                 'id': subcategory.id,
                 'name': subcategory.name,
                 'description': subcategory.description,
-                'category': subcategory.category,
+                'category': {
+                    'id': subcategory.category.id,  # Assuming category is a ForeignKey
+                    'name': subcategory.category.name  # Adjust attributes as needed
+                },
                 'status': subcategory.status,
             }
             return JsonResponse(
                 good_response(request.method, 
-                            {'category': provider_data}, status=200)
+                            {'subcategory': provider_data}, status=200)
             )
         except ServiceProvider.DoesNotExist:
             return JsonResponse(
