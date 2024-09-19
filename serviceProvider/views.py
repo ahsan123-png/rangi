@@ -8,6 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 import json
 import re
+from django.db.models import Q
 # Create your views here.
 @csrf_exempt
 def registerServiceProvider(request) -> JsonResponse:
@@ -77,6 +78,57 @@ def registerServiceProvider(request) -> JsonResponse:
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+#==================== Login for the service provider =============================
+@csrf_exempt
+def loginView(request):
+    data = get_request_body(request)  # Fetches request body data
+    # import pdb; pdb.set_trace()
+    email = data.get('email')
+    phone_number = data.get('phone_number')
+    password = data.get('password')
+    if not (email or phone_number) or not password:
+        return JsonResponse({'error': 'Email/Phone and password are required'}, status=400)
+    if phone_number:
+        phone_number = clean_phone_number(phone_number)
+    try:
+        user_ex = None
+        if email:
+            user_ex = UserEx.objects.filter(email=email).first()
+        if not user_ex and phone_number:
+            user_ex = UserEx.objects.filter(Q(customer__phone_number=phone_number) | Q(serviceprovider__phone_number=phone_number)).first()
+        if user_ex is None:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        if not user_ex.check_password(password):
+            return JsonResponse(
+                bad_response(request.method, {'error': 'Invalid password'}, status=401)
+            )
+        user_data = {
+            'username': user_ex.username,
+            'email': user_ex.email,
+            'phone_number': None,
+            'address': user_ex.address,
+            'zip_code': user_ex.zipCode,
+            'isServiceProvider': user_ex.isServiceProvider,
+            'isCustomer': user_ex.isCustomer
+        }
+        if hasattr(user_ex, 'customer'):
+            user_data['phone_number'] = user_ex.customer.phone_number
+        elif hasattr(user_ex, 'serviceprovider'):
+            user_data['phone_number'] = user_ex.serviceprovider.phone_number
+        return JsonResponse(
+            good_response(
+                request.method,
+                user_data, status=200
+            )
+        )
+    except ValidationError as e:
+        return JsonResponse(
+            bad_response(request.method, {'error': str(e)}, status=400)
+        )
+    except Exception as e:
+        return JsonResponse(
+            bad_response(request.method, {'error': str(e)}, status=500)
+        )
 #===============GET All service provider============
 @csrf_exempt
 def getAllServiceProviders(request) -> JsonResponse:
