@@ -88,3 +88,9 @@ class Review(models.Model):
     def __str__(self):
         return f"Review by {self.customer.user.username} for {self.service_provider.user.username}"
 
+class ReviewImage(models.Model):
+    review = models.ForeignKey(Review, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='review_images/')  # Upload images to 'review_images/' folder
+
+    def __str__(self):
+        return f"Image for Review {self.review.id}"

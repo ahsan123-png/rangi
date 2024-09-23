@@ -8,6 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 import json
 import re
+from django.core.files.storage import default_storage
 # Create your views here.
 
 @csrf_exempt
@@ -259,3 +260,75 @@ def deleteCustomer(request, customer_id) -> JsonResponse:
             {'error': 'Method not allowed'}, status=405
         )
     )
+#================= Add a Review to Service provider ==================
+
+@csrf_exempt
+def addReview(request) -> JsonResponse:
+    if request.method == 'POST':
+        try:
+            customer_id = request.POST.get('customer_id')
+            service_provider_id = request.POST.get('service_provider_id')
+            rating = int(request.POST.get('rating'))
+            comment = request.POST.get('comment')
+            if not (1 <= rating <= 5):
+                return JsonResponse({
+                    "success": False,
+                    "error": "Rating must be between 1 and 5 stars."
+                }, status=400)
+            customer = Customer.objects.get(id=customer_id)
+            service_provider = ServiceProvider.objects.get(id=service_provider_id)
+            review = Review.objects.create(
+                customer=customer,
+                service_provider=service_provider,
+                rating=rating,
+                comment=comment
+            )
+            images = request.FILES.getlist('images')  # Get list of images from the request
+            for image in images:
+                image_path = default_storage.save(f'review_images/{image.name}', image)
+                ReviewImage.objects.create(review=review, image=image_path)
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {
+                "success": True,
+                "message": "Review added successfully!",
+                "review": {
+                    "rating": review.rating,
+                    "comment": review.comment,
+                    "timestamp": review.timestamp,
+                    "images": [image.image.url for image in review.images.all()]  # Return image URLs
+                }
+            }, status=201
+                )
+            )
+        except ServiceProvider.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {
+                "success": False,
+                "error": "Service provider not found."
+            }, status=404
+                )
+            )
+        except Customer.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {
+                "success": False,
+                "error": "Customer not found."
+            }, status=404
+                )
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {
+                "success": False,
+                "error": str(e)
+            }, status=500
+                )
+            )
