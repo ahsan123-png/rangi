@@ -9,6 +9,7 @@ from django.db import IntegrityError
 import json
 import re
 from django.db.models import Q
+from django.middleware.csrf import get_token
 # Create your views here.
 @csrf_exempt
 def registerServiceProvider(request) -> JsonResponse:
@@ -31,6 +32,7 @@ def registerServiceProvider(request) -> JsonResponse:
         address = data.get('address', '')
         zip_code = data.get('zip_code', '')
         name=first_name+' '+last_name
+        csrf_token = get_token(request)
         if '@' in email:
             username = email.split('@')[0] + str(len(first_name + last_name))
         else:
@@ -71,7 +73,8 @@ def registerServiceProvider(request) -> JsonResponse:
                 'address': address,
                 'zip_code': zip_code,
                 'category': category.name,
-                'subcategory': subcategory.name
+                'subcategory': subcategory.name,
+                'csrf_token': csrf_token
             }, status=201)
         except IntegrityError:
             return JsonResponse({'error': 'Database error'}, status=500)
@@ -86,6 +89,7 @@ def loginView(request):
     email = data.get('email')
     phone_number = data.get('phone_number')
     password = data.get('password')
+    csrf_token = get_token(request)
     if not (email or phone_number) or not password:
         return JsonResponse({'error': 'Email/Phone and password are required'}, status=400)
     if phone_number:
@@ -109,7 +113,8 @@ def loginView(request):
             'address': user_ex.address,
             'zip_code': user_ex.zipCode,
             'isServiceProvider': user_ex.isServiceProvider,
-            'isCustomer': user_ex.isCustomer
+            'isCustomer': user_ex.isCustomer,
+            'csrf_token': csrf_token
         }
         if hasattr(user_ex, 'customer'):
             user_data['phone_number'] = user_ex.customer.phone_number
@@ -147,7 +152,8 @@ def getAllServiceProviders(request) -> JsonResponse:
                 'category': provider.category.name,
                 'subcategory': provider.subcategory.name,
                 'number_of_people': provider.number_of_people,
-                'status': provider.status
+                'status': provider.status,
+
             })
         return JsonResponse(
             good_response(

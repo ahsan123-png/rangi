@@ -9,6 +9,7 @@ from django.db import IntegrityError
 import json
 import re
 from django.core.files.storage import default_storage
+from django.middleware.csrf import get_token
 # Create your views here.
 
 @csrf_exempt
@@ -26,6 +27,8 @@ def registerCustomer(request) -> JsonResponse:
         address = data.get('address', '')
         zip_code = data.get('zip_code', '')
         name = first_name + ' ' + last_name
+         # Generate the CSRF token
+        csrf_token = get_token(request)
         if '@' in email:
             username = email.split('@')[0] + str(len(first_name + last_name))
         else:
@@ -73,7 +76,8 @@ def registerCustomer(request) -> JsonResponse:
                         'email': email,
                         'phone_number': phone_number,
                         'address': address,
-                        'zip_code': zip_code
+                        'zip_code': zip_code,
+                        'csrf_token': csrf_token
                     }
                 ), status=201
             )
