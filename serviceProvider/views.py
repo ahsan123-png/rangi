@@ -91,7 +91,12 @@ def loginView(request):
     password = data.get('password')
     csrf_token = get_token(request)
     if not (email or phone_number) or not password:
-        return JsonResponse({'error': 'Email/Phone and password are required'}, status=400)
+        return JsonResponse(
+            bad_response(
+                request.method,
+                {'error': 'Email/Phone and password are required'}, status=400
+            )
+        )
     if phone_number:
         phone_number = clean_phone_number(phone_number)
     try:
@@ -101,12 +106,19 @@ def loginView(request):
         if not user_ex and phone_number:
             user_ex = UserEx.objects.filter(Q(customer__phone_number=phone_number) | Q(serviceprovider__phone_number=phone_number)).first()
         if user_ex is None:
-            return JsonResponse({'error': 'User not found'}, status=404)
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'error': 'User not found'}, status=404
+                )
+            )
         if not user_ex.check_password(password):
             return JsonResponse(
-                bad_response(request.method, {'error': 'Invalid password'}, status=401)
+                bad_response(request.method, 
+                {'error': 'Invalid password'}, status=401)
             )
         user_data = {
+            'id': None,
             'username': user_ex.username,
             'email': user_ex.email,
             'phone_number': None,
@@ -117,8 +129,10 @@ def loginView(request):
             'csrf_token': csrf_token
         }
         if hasattr(user_ex, 'customer'):
+            user_data['id'] = user_ex.customer.id
             user_data['phone_number'] = user_ex.customer.phone_number
         elif hasattr(user_ex, 'serviceprovider'):
+            user_data['id'] = user_ex.serviceprovider.id
             user_data['phone_number'] = user_ex.serviceprovider.phone_number
         return JsonResponse(
             good_response(
