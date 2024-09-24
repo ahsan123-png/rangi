@@ -304,6 +304,45 @@ def deleteSubCategory(request, category_id) -> JsonResponse:
         bad_response(request.method, 
                              {'error': 'Method not allowed'}, status=405)
     )
+#======================== subcategory by category name =================
+@csrf_exempt
+def getSubcategoriesByCategory(request, category_id) -> JsonResponse:
+    if request.method == 'GET':
+        try:
+            category = Category.objects.get(id=category_id)
+            subcategories = category.subcategories.all()
+            result = []
+            for subcategory in subcategories:
+                result.append({
+                    'id': subcategory.id,
+                    'name': subcategory.name,
+                    'description': subcategory.description,
+                    'status': subcategory.status
+                })
+            return JsonResponse(
+                good_response(request.method, 
+                {'subcategories': result},
+                status=200)
+            )
+        except ObjectDoesNotExist:
+            return JsonResponse(
+                bad_response(request.method, 
+                {'error': 'Category not found'},
+                status=404)
+            )
+        except Exception as e:
+            return JsonResponse(
+            bad_response(
+                request.method,
+                {'error': str(e)},
+                status=500
+            ))
+    return JsonResponse(
+        bad_response(
+            request.method, 
+            {'error': 'Method not allowed'},
+            status=405)
+    )
 
 
 

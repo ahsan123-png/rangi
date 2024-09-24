@@ -8,6 +8,7 @@ urlpatterns = [
     path('category/<int:category_id>/',getCategory,name="getCategories"),
     path('category/update/<int:category_id>/',updateCategory,name="updateCategory"),
     path('category/delete/<int:category_id>/',deleteCategory,name="deleteCategory"),
+    path('categories/subcategories/<int:category_id>/', getSubcategoriesByCategory, name='get_subcategories_by_category'),
     # Subcategory Urls
     path('subcategories/all/',getSubcategories,name="getSubcategories"),
     path('subcategories/get/<int:category_id>/',getSubCategory,name="getSubCategory"),
