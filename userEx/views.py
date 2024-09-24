@@ -208,7 +208,8 @@ def getSubcategories(request) -> JsonResponse:
                 'id': subcategory.id,
                 'name': subcategory.name,
                 'description': subcategory.description,
-                'category': subcategory.category.name,
+                'main_category_id': subcategory.category.id,
+                'main_category_name': subcategory.category.name,
                 'status': subcategory.status
             })
         return JsonResponse(result, safe=False, status=200)
