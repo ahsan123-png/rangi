@@ -72,6 +72,7 @@ def registerCustomer(request) -> JsonResponse:
                 good_response(
                     request.method,
                     {
+                        'id': customer.id,
                         'username': username,
                         'email': email,
                         'phone_number': phone_number,
@@ -264,6 +265,7 @@ def deleteCustomer(request, customer_id) -> JsonResponse:
             {'error': 'Method not allowed'}, status=405
         )
     )
+#================= Review Opreations =============================
 #================= Add a Review to Service provider ==================
 
 @csrf_exempt
@@ -336,3 +338,144 @@ def addReview(request) -> JsonResponse:
             }, status=500
                 )
             )
+# Retrieve All Reviews for a Service Provider
+@csrf_exempt
+def getReviewsByServiceProvider(request, service_provider_id):
+    if request.method == 'GET':
+        try:
+            service_provider = ServiceProvider.objects.get(id=service_provider_id)
+            reviews = Review.objects.filter(service_provider=service_provider).select_related('customer')
+            review_data = []
+            for review in reviews:
+                review_data.append({
+                    "id": review.id,
+                    'customer': review.customer.user.username,
+                    'rating': review.rating,
+                    'comment': review.comment,
+                    'timestamp': review.timestamp,
+                    'images': [image.image.url for image in review.images.all()]
+                })
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {
+                        "success": True,
+                        "reviews": review_data
+                    }
+                ), status=200
+            )
+        except ServiceProvider.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"success": False, "error": "Service provider not found."}
+                ), status=404
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"success": False, "error": str(e)}
+                ), status=500
+            )
+    return JsonResponse(
+        bad_response(
+            request.method,
+            {"success": False, "error": "Method not allowed."}, status=405
+        )
+    )
+# Update a Review
+@csrf_exempt
+def updateReview(request, review_id):
+    if request.method == 'PATCH':
+        try:
+            review = Review.objects.get(id=review_id)
+            data = get_request_body(request)
+            rating = data.get('rating')
+            if rating is not None:
+                rating = int(rating)
+                if not (1 <= rating <= 5):
+                    return JsonResponse(
+                        bad_response(
+                            request.method,
+                            {"success": False, "error": "Rating must be between 1 and 5."}
+                        ), status=400
+                    )
+                review.rating = rating
+            review.comment = data.get('comment', review.comment)
+            review.save()
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {
+                        "success": True,
+                        "message": "Review updated successfully!",
+                        "review": {
+                            "rating": review.rating,
+                            "comment": review.comment,
+                            "timestamp": review.timestamp
+                        }
+                    }
+                ), status=200
+            )
+        except Review.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"success": False, "error": "Review not found."}
+                ), status=404
+            )
+        except ValueError:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"success": False, "error": "Invalid rating value. Rating must be an integer."}
+                ), status=400
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"success": False, "error": str(e)}
+                ), status=500
+            )
+    return JsonResponse(
+        bad_response(
+            request.method,
+            {"success": False, "error": "Method not allowed."}, status=405
+        )
+    )
+
+# Delete a Review
+@csrf_exempt
+def deleteReview(request, review_id):
+    if request.method == 'DELETE':
+        try:
+            review = Review.objects.get(id=review_id)
+            review.delete()
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {"success": True, "message": "Review deleted successfully!"}
+                ), status=200
+            )
+        except Review.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"success": False, "error": "Review not found."}
+                ), status=404
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"success": False, "error": str(e)}
+                ), status=500
+            )
+    return JsonResponse(
+        bad_response(
+            request.method,
+            {"success": False, "error": "Method not allowed."}, status=405
+        )
+    )

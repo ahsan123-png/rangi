@@ -54,7 +54,12 @@ def registerServiceProvider(request) -> JsonResponse:
                 category = Category.objects.get(id=category_id)
                 subcategory = Subcategory.objects.get(id=subcategory_id)
             except ObjectDoesNotExist:
-                return JsonResponse({'error': 'Category or Subcategory does not exist'}, status=400)
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {'error': 'Category or Subcategory does not exist'},
+                        status=404)
+                )
             service_provider = ServiceProvider(
                 user=user,
                 company_name=company_name,
@@ -65,17 +70,23 @@ def registerServiceProvider(request) -> JsonResponse:
                 status=status
             )
             service_provider.save()
-            return JsonResponse({
-                'message': 'Service provider registered successfully',
-                'username': username,
-                'email': email,
-                'phone_number': phone_number,
-                'address': address,
-                'zip_code': zip_code,
-                'category': category.name,
-                'subcategory': subcategory.name,
-                'csrf_token': csrf_token
-            }, status=201)
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {'message': 'Service provider registered successfully',
+                     'id': service_provider.id,
+                     'username': username,
+                     'email': email,
+                     'phone_number': phone_number,
+                     'address': address,
+                     'zip_code': zip_code,
+                     'category': category.name,
+                     'subcategory': subcategory.name,
+                     'csrf_token': csrf_token
+                     },
+                    status=201
+                )
+            )
         except IntegrityError:
             return JsonResponse({'error': 'Database error'}, status=500)
         except Exception as e:
@@ -94,7 +105,8 @@ def loginView(request):
         return JsonResponse(
             bad_response(
                 request.method,
-                {'error': 'Email/Phone and password are required'}, status=400
+                {'error': 'Email/Phone and password are required'},
+                status=400
             )
         )
     if phone_number:
@@ -109,13 +121,15 @@ def loginView(request):
             return JsonResponse(
                 bad_response(
                     request.method,
-                    {'error': 'User not found'}, status=404
+                    {'error': 'User not found'},
+                    status=404
                 )
             )
         if not user_ex.check_password(password):
             return JsonResponse(
                 bad_response(request.method, 
-                {'error': 'Invalid password'}, status=401)
+                {'error': 'Invalid password'},
+                status=401)
             )
         user_data = {
             'id': None,
@@ -142,11 +156,16 @@ def loginView(request):
         )
     except ValidationError as e:
         return JsonResponse(
-            bad_response(request.method, {'error': str(e)}, status=400)
+            bad_response(
+                request.method,
+                {'error': str(e)},
+                status=400)
         )
     except Exception as e:
         return JsonResponse(
-            bad_response(request.method, {'error': str(e)}, status=500)
+            bad_response(request.method,
+                         {'error': str(e)},
+                         status=500)
         )
 #===============GET All service provider============
 @csrf_exempt
@@ -172,10 +191,17 @@ def getAllServiceProviders(request) -> JsonResponse:
         return JsonResponse(
             good_response(
                 request.method,
-                {"all_service_provider": result},status=200
+                {"all_service_provider": result},
+                status=200
             )
         )
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
+    return JsonResponse(
+        bad_response(
+            request.method,
+            {'error': 'Method not allowed'},
+            status=405
+        )
+    )
 #==================update service provider employee =================
 @csrf_exempt
 def updateServiceProvider(request, provider_id) -> JsonResponse:
@@ -183,13 +209,21 @@ def updateServiceProvider(request, provider_id) -> JsonResponse:
         try:
             data = get_request_body(request)
         except ValueError:
-            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'error': 'Invalid request body'},
+                    status=400
+                )
+            )
         try:
             provider = ServiceProvider.objects.get(id=provider_id)
         except ObjectDoesNotExist:
             return JsonResponse(
-                bad_response(request.method,
-                             {'error': 'Service provider not found'}, status=404)
+                bad_response(
+                request.method,
+                {'error': 'Service provider not found'},
+                status=404)
             )
         provider.user.first_name = data.get('first_name', provider.user.first_name)
         provider.user.last_name = data.get('last_name', provider.user.last_name)
@@ -208,7 +242,8 @@ def updateServiceProvider(request, provider_id) -> JsonResponse:
             except ObjectDoesNotExist:
                 return JsonResponse(bad_response(
                     request.method,
-                    {'error': 'Category does not exist'}, status=400
+                    {'error': 'Category does not exist'},
+                    status=400
                 ))
         if subcategory_id:
             try:
@@ -217,20 +252,24 @@ def updateServiceProvider(request, provider_id) -> JsonResponse:
             except ObjectDoesNotExist:
                 return JsonResponse(bad_response(
                     request.method,
-                    {'error': 'Category does not exist'}, status=400
+                    {'error': 'Category does not exist'},
+                    status=400
                 ))
         provider.number_of_people = data.get('number_of_people', provider.number_of_people)
         provider.status = data.get('status', provider.status)
         provider.user.save()
         provider.save()
         return JsonResponse(
-            good_response(request.method,
-                         {'message': 'Service provider updated successfully'}, status=200)
-    
+            good_response(
+            request.method,
+            {'message': 'Service provider updated successfully'},
+            status=200)
         )
     return JsonResponse(
-        bad_response(request.method,
-                         {'error': 'Method not allowed'}, status=405)
+        bad_response(
+        request.method,
+        {'error': 'Method not allowed'},
+        status=405)
     )
 #==================== Get a single service provider =============================
 @csrf_exempt
@@ -252,18 +291,30 @@ def getServiceProvider(request, provider_id) -> JsonResponse:
                 'status': service_provider.status
             }
             return JsonResponse(
-                good_response(request.method, 
-                            {'service_provider': provider_data}, status=200)
+                good_response(
+                request.method, 
+                {'service_provider': provider_data},
+                status=200)
             )
         except ServiceProvider.DoesNotExist:
             return JsonResponse(
-                bad_response(request.method, 
-                             {'error': 'Service provider not found'}, status=404)
+                bad_response(
+                request.method, 
+                {'error': 'Service provider not found'},
+                status=404)
             )
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    return JsonResponse(bad_response(request.method,
-                                     {'error': 'Method not allowed'}, status=405))
+            return JsonResponse(
+                bad_response(
+                request.method, 
+                {'error': str(e)},
+                status=500
+                )
+            )
+    return JsonResponse(bad_response(
+            request.method,
+            {'error': 'Method not allowed'},
+            status=405))
 #================== Delete Service Provider =============================
 @csrf_exempt
 def deleteServiceProvider(request, provider_id) -> JsonResponse:
@@ -279,12 +330,16 @@ def deleteServiceProvider(request, provider_id) -> JsonResponse:
             )
         except ObjectDoesNotExist:
             return JsonResponse(
-                bad_response(request.method, 
-                             {'error': 'Service provider not found'}, status=404)
+                bad_response(
+                    request.method, 
+                    {'error': 'Service provider not found'},
+                    status=404)
             )
     return JsonResponse(
-        bad_response(request.method, 
-                             {'error': 'Method not allowed'}, status=405)
+        bad_response(
+                    request.method, 
+                    {'error': 'Method not allowed'},
+                    status=405)
     )
 
 #================================== Update status ==========================================
