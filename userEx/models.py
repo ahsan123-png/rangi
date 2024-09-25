@@ -15,7 +15,6 @@ class UserEx(User):
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
-    status = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -26,7 +25,7 @@ class Subcategory(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(null=True, blank=True)
     category = models.ForeignKey(Category, related_name='subcategories', on_delete=models.CASCADE)
-    status = models.BooleanField(default=True)
+    additional_price = models.DecimalField(max_digits=10, decimal_places=2,default=0.0)
 
     def __str__(self):
         return f"{self.name} - {self.category.name}"
@@ -55,8 +54,22 @@ class ServiceProvider(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.company_name or 'Individual'}"
+# SP Profiles =================
+class SPProfile(models.Model):
+    service_provider = models.OneToOneField(ServiceProvider, on_delete=models.CASCADE)
+    base_price = models.DecimalField(max_digits=10, decimal_places=2)
+    introduction = models.TextField()
+    company_founded_date = models.DateField()
+    payment_methods = models.CharField(max_length=200)
+    services_included = models.ManyToManyField(Subcategory)
 
-
+# ============= Service Requests =============
+class ServiceRequest(models.Model):
+    service_provider = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    subcategories = models.ManyToManyField(Subcategory)  # Extra services selected by customer
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    request_timestamp = models.DateTimeField(auto_now_add=True)
 # Employee model (works under a category and subcategory)
 class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)  # Links to the default Django User model

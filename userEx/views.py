@@ -49,6 +49,7 @@ def addSubcategory(request):
             subcategory_name = data.get("subcategory_name")
             subcategory_description = data.get("description", "")
             category_id = data.get("category_id")
+            additional_price = data.get("additional_price", 0.00) 
             if not subcategory_name:
                 return JsonResponse(
                     bad_response(
@@ -70,16 +71,19 @@ def addSubcategory(request):
                     bad_response(
                         request.method,
                         {"error": "Category already exists"}, status=400))
-            subcategory = Subcategory(name=subcategory_name, description=subcategory_description, category=category)
+            subcategory = Subcategory(name=subcategory_name, description=subcategory_description, category=category,additional_price=additional_price)
             subcategory.save()
-            return JsonResponse({
-                "message": "Subcategory added successfully",
-                "subcategory_id": subcategory.id,
-                "subcategory_name": subcategory.name,
-                "subcategory_description": subcategory.description,
-                "category_id": subcategory.category.id,
-                "category_name": subcategory.category.name,
-            }, status=201)
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {"message": "Subcategory added successfully",
+                     "subcategory_id": subcategory.id,
+                     "subcategory_name": subcategory.name,
+                     "subcategory_description": subcategory.description,
+                     "category_id": subcategory.category.id,
+                     "category_name": subcategory.category.name,
+                     "additional_price": additional_price},status=201)
+                )
         except ValidationError as e:
             return JsonResponse(
                 bad_response(
@@ -109,8 +113,7 @@ def getCategories(request) -> JsonResponse:
         for category in categories:
             result.append({
                 'id': category.id,
-                'name': category.name,
-                'status': category.status,
+                'name': category.name
             })
         return JsonResponse(
             good_response(
@@ -205,12 +208,12 @@ def getSubcategories(request) -> JsonResponse:
         result = []
         for subcategory in subcategories:
             result.append({
-                'id': subcategory.id,
-                'name': subcategory.name,
-                'description': subcategory.description,
                 'main_category_id': subcategory.category.id,
                 'main_category_name': subcategory.category.name,
-                'status': subcategory.status
+                'subcategory_id': subcategory.id,
+                'subcategory_name': subcategory.name,
+                'description': subcategory.description,
+                'additional_price': subcategory.additional_price,
             })
         return JsonResponse(result, safe=False, status=200)
     return JsonResponse({'error': 'Method not allowed'}, status=405)

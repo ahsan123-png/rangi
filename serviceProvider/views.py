@@ -10,6 +10,7 @@ import json
 import re
 from django.db.models import Q
 from django.middleware.csrf import get_token
+from datetime import datetime
 # Create your views here.
 @csrf_exempt
 def registerServiceProvider(request) -> JsonResponse:
@@ -448,3 +449,130 @@ def listServiceProviders(request):
                 "success": False,
                 "error": str(e)
             }, status=500)
+#================SP PRofile =======================
+@csrf_exempt
+def createSpProfile(request,service_provider_id):
+    if request.method == 'POST':
+        try:
+            data = get_request_body(request)
+            base_price = data.get('base_price')
+            introduction = data.get('introduction')
+            company_founded_date = data.get('company_founded_date')
+            payment_methods = data.get('payment_methods')
+            services_included = data.get('services_included', [])
+            # Fetching service provider
+            service_provider = ServiceProvider.objects.get(id=service_provider_id)
+            # Converting date string to a datetime object
+            company_founded_date_obj = datetime.strptime(company_founded_date, '%Y-%m-%d')
+            # Creating or updating SPProfile
+            sp_profile, created = SPProfile.objects.update_or_create(
+                service_provider=service_provider,
+                defaults={
+                    'base_price': base_price,
+                    'introduction': introduction,
+                    'company_founded_date': company_founded_date_obj,
+                    'payment_methods': payment_methods,
+                }
+            )
+            # Managing services included
+            sp_profile.services_included.clear()  # Clear old subcategories
+            for subcategory_id in services_included:
+                subcategory = Subcategory.objects.get(id=subcategory_id)
+                sp_profile.services_included.add(subcategory)
+            return JsonResponse({
+                "success": True,
+                "message": "SP Profile created/updated successfully!",
+                "profile": {
+                    "base_price": sp_profile.base_price,
+                    "introduction": sp_profile.introduction,
+                    "company_founded_date": sp_profile.company_founded_date.strftime('%Y-%m-%d'),
+                    "payment_methods": sp_profile.payment_methods,
+                    "services_included": [subcategory.name for subcategory in sp_profile.services_included.all()]
+                }
+            }, status=201)
+        except ServiceProvider.DoesNotExist:
+            return JsonResponse({
+                "success": False,
+                "error": "Service provider not found."
+            }, status=404)
+
+        except Exception as e:
+            return JsonResponse({
+                "success": False,
+                "error": str(e)
+            }, status=500)
+
+    return JsonResponse({
+        "success": False,
+        "error": "Method not allowed."
+    }, status=405)
+#================ Service Request =============================
+@csrf_exempt
+def createServiceRequest(request):
+    if request.method == 'POST':
+        try:
+            data = get_request_body(request)
+            service_provider_id = data.get('service_provider_id')
+            category_id = data.get('category_id')
+            subcategory_ids = data.get('subcategories', [])
+            service_provider = ServiceProvider.objects.get(id=service_provider_id)
+            category = Category.objects.get(id=category_id)
+            subcategories = Subcategory.objects.filter(id__in=subcategory_ids)
+            sp_profile = SPProfile.objects.get(service_provider=service_provider)
+            base_price = float(sp_profile.base_price)
+            total_price = base_price
+            included_services_ids = sp_profile.services_included.values_list('id', flat=True)
+            additional_services = []
+            for subcategory in subcategories:
+                if subcategory.id not in included_services_ids:
+                    total_price += float(subcategory.additional_price)
+                    additional_services.append(subcategory.name)
+            service_request = ServiceRequest.objects.create(
+                service_provider=service_provider,
+                category=category,
+                total_price=total_price)
+            service_request.subcategories.set(subcategories)
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {
+                        "message": "Service request created successfully!",
+                        "service_request": {
+                            "id": service_request.id,
+                            "service_provider_id": service_request.service_provider.id,
+                            "category_id": service_request.category.id,
+                            "total_price": service_request.total_price,
+                            "subcategories": [subcategory.name for subcategory in service_request.subcategories.all()]
+                        }
+                    },status=201))
+                
+        except ServiceProvider.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {
+                        "error": "Service provider not found"
+                    }, status=404))
+        except Category.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {
+                        "error": "Category not found"
+                    }, status=404))
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {
+                        "error": str(e)
+                    }, status=500))
+    return JsonResponse(
+        bad_response(
+            request.method,
+            {
+                "error": "Method not allowed"
+            }, status=405))
+
+
+
