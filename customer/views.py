@@ -283,7 +283,8 @@ def addReview(request) -> JsonResponse:
                     "success": False,
                     "error": "Rating must be between 1 and 5 stars."
                 }, status=400)
-            customer = Customer.objects.get(id=customer_id)
+            # customer = Customer.objects.get(id=customer_id)
+            customer = Customer.objects.select_related('user').get(id=customer_id)
             service_provider = ServiceProvider.objects.get(id=service_provider_id)
             review = Review.objects.create(
                 customer=customer,
