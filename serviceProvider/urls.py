@@ -10,4 +10,6 @@ urlpatterns = [
     path('get/<int:provider_id>/', getServiceProvider, name='getServiceProvider'),
     path('delete/<int:provider_id>/', deleteServiceProvider, name='deleteServiceProvider'),
     path('search/', listServiceProviders, name='listServiceProviders'),
+    path('create/profile/<int:service_provider_id>/', createSpProfile, name='createSpProfile'),
+    path('create/service/request/', createServiceRequest, name='createServiceRequest'),
 ]
