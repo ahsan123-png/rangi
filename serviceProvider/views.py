@@ -171,7 +171,7 @@ def loginView(request):
 @csrf_exempt
 def getAllServiceProviders(request) -> JsonResponse:
     if request.method == 'GET':
-        service_providers = ServiceProvider.objects.all()
+        service_providers = ServiceProvider.objects.select_related('user', 'category', 'subcategory').all()
         result = []
         for provider in service_providers:
             result.append({
@@ -405,7 +405,7 @@ def updateServiceProviderStatus(request, id):
 def listServiceProviders(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
+            data = get_request_body(request)
             category_id = data.get('category_id')
             subcategory_id = data.get('subcategory_id')
             zip_code = data.get('zip_code')
@@ -424,6 +424,7 @@ def listServiceProviders(request):
             result = [
                 {
                     "username": sp.user.username,
+                    "service_provider_id": sp.id,
                     "company_name": sp.company_name,
                     "phone_number": sp.phone_number,
                     "category": sp.category.name,
