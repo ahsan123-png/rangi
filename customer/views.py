@@ -106,7 +106,8 @@ def registerCustomer(request) -> JsonResponse:
 @csrf_exempt
 def getAllCustomers(request) -> JsonResponse:
     if request.method == 'GET':
-        customers = Customer.objects.all()
+        # customers = Customer.objects.all()
+        customers = Customer.objects.select_related('user').all() 
         result = []
         for customer in customers:
             result.append({
@@ -138,7 +139,8 @@ def getAllCustomers(request) -> JsonResponse:
 def getCustomer(request, customer_id) -> JsonResponse:
     if request.method == 'GET':
         try:
-            customer = Customer.objects.get(id=customer_id)
+            # customer = Customer.objects.get(id=customer_id)
+            customer = Customer.objects.select_related('user').get(id=customer_id)
             customer_data = {
                 'id': customer.id,
                 'username': customer.user.username,
