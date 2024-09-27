@@ -231,7 +231,6 @@ def getSubCategory(request, category_id) -> JsonResponse:
                     'id': subcategory.category.id,  # Assuming category is a ForeignKey
                     'name': subcategory.category.name  # Adjust attributes as needed
                 },
-                'status': subcategory.status,
             }
             return JsonResponse(
                 good_response(request.method, 
@@ -264,7 +263,6 @@ def updateSubcategory(request, subcategory_id) -> JsonResponse:
                 )
         subcategory.name = data.get('name', subcategory.name)
         subcategory.description = data.get('description', subcategory.description)
-        subcategory.status = data.get('status', subcategory.status)
         category_id = data.get('category', subcategory.category.id)
         if category_id:
             try:
