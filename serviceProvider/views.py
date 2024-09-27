@@ -11,6 +11,7 @@ import re
 from django.db.models import Q
 from django.middleware.csrf import get_token
 from datetime import datetime
+from django.db.models import Avg
 # Create your views here.
 @csrf_exempt
 def registerServiceProvider(request) -> JsonResponse:
@@ -172,9 +173,26 @@ def loginView(request):
 @csrf_exempt
 def getAllServiceProviders(request) -> JsonResponse:
     if request.method == 'GET':
-        service_providers = ServiceProvider.objects.select_related('user', 'category', 'subcategory').all()
+        # Fetch all service providers with related user, category, and SPProfile in one optimized query
+        service_providers = ServiceProvider.objects.select_related('user', 'category')\
+                                                   .prefetch_related('spprofile')\
+                                                   .annotate(average_rating=Avg('reviews__rating'))\
+                                                   .all()
         result = []
         for provider in service_providers:
+            # Fetch SP profile data
+            try:
+                sp_profile = provider.spprofile  # Access SPProfile through reverse relationship
+                sp_profile_data = {
+                    "base_price": float(sp_profile.base_price),
+                    "introduction": sp_profile.introduction,
+                    "company_founded_date": sp_profile.company_founded_date,
+                    "payment_methods": sp_profile.payment_methods,
+                    "services_included": [service.name for service in sp_profile.services_included.all()]
+                }
+            except SPProfile.DoesNotExist:
+                sp_profile_data = {}
+            # Append service provider data to result list
             result.append({
                 'id': provider.id,
                 'username': provider.user.username,
@@ -184,10 +202,11 @@ def getAllServiceProviders(request) -> JsonResponse:
                 'zip_code': provider.user.zipCode,
                 'company_name': provider.company_name,
                 'category': provider.category.name,
-                'subcategory': provider.subcategory.name,
+                # 'subcategory': provider.subcategory.name,  # Assuming ServiceProvider doesn't have subcategory directly
+                'average_rating': provider.average_rating if provider.average_rating is not None else 0.0,
                 'number_of_people': provider.number_of_people,
                 'status': provider.status,
-
+                'sp_profile': sp_profile_data  # Add SP Profile data
             })
         return JsonResponse(
             good_response(
@@ -203,6 +222,7 @@ def getAllServiceProviders(request) -> JsonResponse:
             status=405
         )
     )
+
 #==================update service provider employee =================
 @csrf_exempt
 def updateServiceProvider(request, provider_id) -> JsonResponse:
@@ -277,7 +297,18 @@ def updateServiceProvider(request, provider_id) -> JsonResponse:
 def getServiceProvider(request, provider_id) -> JsonResponse:
     if request.method == 'GET':
         try:
-            service_provider = ServiceProvider.objects.get(id=provider_id)
+            service_provider = ServiceProvider.objects.annotate(average_rating=Avg('reviews__rating')).get(id=provider_id)
+            try:
+                sp_profile = SPProfile.objects.get(service_provider=service_provider)
+                sp_profile_data = {
+                    "base_price": float(sp_profile.base_price),
+                    "introduction": sp_profile.introduction,
+                    "company_founded_date": sp_profile.company_founded_date,
+                    "payment_methods": sp_profile.payment_methods,
+                    "services_included": [service.name for service in sp_profile.services_included.all()]
+                }
+            except SPProfile.DoesNotExist:
+                sp_profile_data = {}
             provider_data = {
                 'id': service_provider.id,
                 'username': service_provider.user.username,
@@ -289,33 +320,40 @@ def getServiceProvider(request, provider_id) -> JsonResponse:
                 'category': service_provider.category.name,
                 'subcategory': service_provider.subcategory.name,
                 'number_of_people': service_provider.number_of_people,
-                'status': service_provider.status
+                'status': service_provider.status,
+                'average_rating': service_provider.average_rating if service_provider.average_rating is not None else 0.0,
+                'sp_profile': sp_profile_data  # Add SP Profile data
             }
             return JsonResponse(
                 good_response(
-                request.method, 
-                {'service_provider': provider_data},
-                status=200)
+                    request.method, 
+                    {'service_provider': provider_data},
+                    status=200
+                )
             )
         except ServiceProvider.DoesNotExist:
             return JsonResponse(
                 bad_response(
-                request.method, 
-                {'error': 'Service provider not found'},
-                status=404)
+                    request.method, 
+                    {'error': 'Service provider not found'},
+                    status=404
+                )
             )
         except Exception as e:
             return JsonResponse(
                 bad_response(
-                request.method, 
-                {'error': str(e)},
-                status=500
+                    request.method, 
+                    {'error': str(e)},
+                    status=500
                 )
             )
-    return JsonResponse(bad_response(
+    return JsonResponse(
+        bad_response(
             request.method,
             {'error': 'Method not allowed'},
-            status=405))
+            status=405
+        )
+    )
 #================== Delete Service Provider =============================
 @csrf_exempt
 def deleteServiceProvider(request, provider_id) -> JsonResponse:
