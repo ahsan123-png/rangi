@@ -318,7 +318,6 @@ def getSubcategoriesByCategory(request, category_id) -> JsonResponse:
                     'id': subcategory.id,
                     'name': subcategory.name,
                     'description': subcategory.description,
-                    'status': subcategory.status
                 })
             return JsonResponse(
                 good_response(request.method, 
