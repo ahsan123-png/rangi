@@ -178,7 +178,6 @@ def getAllServiceProviders(request) -> JsonResponse:
                                                    .prefetch_related('spprofile')\
                                                    .annotate(average_rating=Avg('reviews__rating'))\
                                                    .all()
-
         result = []
         for provider in service_providers:
             # Fetch SP profile data
@@ -193,7 +192,6 @@ def getAllServiceProviders(request) -> JsonResponse:
                 }
             except SPProfile.DoesNotExist:
                 sp_profile_data = {}
-
             # Append service provider data to result list
             result.append({
                 'id': provider.id,
@@ -210,7 +208,6 @@ def getAllServiceProviders(request) -> JsonResponse:
                 'status': provider.status,
                 'sp_profile': sp_profile_data  # Add SP Profile data
             })
-
         return JsonResponse(
             good_response(
                 request.method,
@@ -218,7 +215,6 @@ def getAllServiceProviders(request) -> JsonResponse:
                 status=200
             )
         )
-
     return JsonResponse(
         bad_response(
             request.method,
