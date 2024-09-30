@@ -12,6 +12,7 @@ from django.db.models import Q
 from django.middleware.csrf import get_token
 from datetime import datetime
 from django.db.models import Avg
+from django.db.models import Prefetch
 # Create your views here.
 @csrf_exempt
 def registerServiceProvider(request) -> JsonResponse:
@@ -448,7 +449,15 @@ def listServiceProviders(request):
             category_id = data.get('category_id')
             subcategory_id = data.get('subcategory_id')
             zip_code = data.get('zip_code')
-            service_providers = ServiceProvider.objects.select_related('user', 'category', 'subcategory')
+            service_providers = (
+                ServiceProvider.objects
+                .select_related('user', 'category', 'subcategory')
+                .prefetch_related(
+                    Prefetch('spprofile'),  # Prefetch SP profile to get the base price
+                    Prefetch('reviews')  # Prefetch reviews to calculate the average rating
+                )
+                .annotate(average_rating=Avg('reviews__rating'))  # Annotate the average rating from the reviews
+            )
             if category_id:
                 service_providers = service_providers.filter(category_id=category_id)
             if subcategory_id:
@@ -460,20 +469,26 @@ def listServiceProviders(request):
                     "success": False,
                     "message": "No service providers found for the given filters."
                 }, status=404)
-            result = [
-                {
-                    "username": sp.user.username,
+            result = []
+            for sp in service_providers:
+                # Get SPProfile details
+                sp_profile = getattr(sp, 'spprofile', None)
+                base_price = float(sp_profile.base_price) if sp_profile else 0.0
+
+                result.append({
                     "service_provider_id": sp.id,
+                    "category_id": sp.category.id,
+                    "username": sp.user.username,
                     "company_name": sp.company_name,
                     "phone_number": sp.phone_number,
                     "category": sp.category.name,
                     "subcategory": sp.subcategory.name,
                     "zip_code": sp.user.zipCode,
                     "status": sp.status,
-                    "number_of_people": sp.number_of_people
-                }
-                for sp in service_providers
-            ]
+                    "number_of_people": sp.number_of_people,
+                    "average_rating": sp.average_rating if sp.average_rating is not None else 0.0,  # Average rating
+                    "base_price": base_price  # Base price from SPProfile
+                })
             return JsonResponse({
                 "success": True,
                 "service_providers": result
