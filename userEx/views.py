@@ -343,12 +343,133 @@ def getSubcategoriesByCategory(request, category_id) -> JsonResponse:
             {'error': 'Method not allowed'},
             status=405)
     )
-
-
-
-
-
-
+# ======================== Contact us =================
+@csrf_exempt
+def contactView(request):
+    if request.method == 'POST':
+        data= get_request_body(request)
+        name=data.get('name' , None)
+        phone=data.get('phone' , None)
+        email=data.get('email' , None)
+        subject=data.get('subject' , None)
+        message=data.get('message' , None)
+        if not name and (phone or email) and subject and message:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"error": "All fields are required"},
+                    status=400,
+                )
+            )
+        if phone:
+            phone=clean_phone_number(phone)
+        contact = ContactUs(name=name, phone=phone, email=email, subject=subject, message=message)
+        contact.save()
+        return JsonResponse(
+            good_response(
+                request.method,
+                {"message": "Your message has been sent successfully",
+                 "contact_id": contact.id,
+                 "name": name,
+                 "phone": phone,
+                 "email": email,
+                 "subject": subject,
+                 "message": message},
+                status=200,))
+    else:
+        return JsonResponse(
+            bad_response(
+                request.method,
+                {"error": "Only POST requests are allowed"},
+                status=405,
+            )
+        )
+#============ get all contacts ==============
+@csrf_exempt
+def getAllContacts(request):
+    if request.method == 'GET':
+        try:
+            contacts = ContactUs.objects.only('id', 'name', 'phone', 'email', 'subject', 'message').all()
+            # Prepare response
+            result = [
+                {
+                    'contact_id': contact.id,
+                    'name': contact.name,
+                    'phone': contact.phone,
+                    'email': contact.email,
+                    'subject': contact.subject,
+                    'message': contact.message,
+                }
+                for contact in contacts
+            ]
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {"contacts": result},
+                    status=200
+                )
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'error': str(e)},
+                    status=500
+                )
+            )
+    else:
+        return JsonResponse(
+            bad_response(
+                request.method,
+                {'error': 'Method not allowed'},
+                status=405
+            )
+        )
+#============ get by id =================
+@csrf_exempt
+def getContactById(request, contact_id):
+    if request.method == 'GET':
+        try:
+            contact = ContactUs.objects.only('id', 'name', 'phone', 'email', 'subject', 'message').get(id=contact_id)
+            contact_data = {
+                'id': contact.id,
+                'name': contact.name,
+                'phone': contact.phone,
+                'email': contact.email,
+                'subject': contact.subject,
+                'message': contact.message,
+            }
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {'contact': contact_data},
+                    status=200
+                )
+            )
+        except ContactUs.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'error': 'Contact not found'},
+                    status=404
+                )
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'error': str(e)},
+                    status=500
+                )
+            )
+    else:
+        return JsonResponse(
+            bad_response(
+                request.method,
+                {'error': 'Method not allowed'},
+                status=405
+            )
+        )
 
 
 
