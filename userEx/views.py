@@ -343,9 +343,47 @@ def getSubcategoriesByCategory(request, category_id) -> JsonResponse:
             {'error': 'Method not allowed'},
             status=405)
     )
-
-
-
+# ======================== Contact us =================
+@csrf_exempt
+def contactView(request):
+    if request.method == 'POST':
+        data= get_request_body(request)
+        name=data.get('name' , None)
+        phone=data.get('phone' , None)
+        email=data.get('email' , None)
+        subject=data.get('subject' , None)
+        message=data.get('message' , None)
+        if not name and (phone or email) and subject and message:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"error": "All fields are required"},
+                    status=400,
+                )
+            )
+        if phone:
+            phone=clean_phone_number(phone)
+        contact = ContactUs(name=name, phone=phone, email=email, subject=subject, message=message)
+        contact.save()
+        return JsonResponse(
+            good_response(
+                request.method,
+                {"message": "Your message has been sent successfully",
+                 "contact_id": contact.id,
+                 "name": name,
+                 "phone": phone,
+                 "email": email,
+                 "subject": subject,
+                 "message": message},
+                status=200,))
+    else:
+        return JsonResponse(
+            bad_response(
+                request.method,
+                {"error": "Only POST requests are allowed"},
+                status=405,
+            )
+        )
 
 
 

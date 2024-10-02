@@ -14,4 +14,7 @@ urlpatterns = [
     path('subcategories/get/<int:category_id>/',getSubCategory,name="getSubCategory"),
     path('subcategories/update/<int:subcategory_id>/',updateSubcategory,name="updateSubcategory"),
     path('subcategories/delete/<int:category_id>/',deleteSubCategory,name="deleteSubCategory"),
+    # Contact View
+    path('contact_us/',contactView,name="contactView"),
+    
 ]

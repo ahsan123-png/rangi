@@ -34,3 +34,13 @@ class CustomerSerializer(serializers.ModelSerializer):
         model = Customer
         fields = ['user', 
                 'phone_number']
+
+
+class ContactUsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactUs
+        fields = ['name',
+        'email',
+        'phone',
+        'subject',
+        'message']
