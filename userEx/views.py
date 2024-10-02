@@ -384,9 +384,92 @@ def contactView(request):
                 status=405,
             )
         )
-
-
-
+#============ get all contacts ==============
+@csrf_exempt
+def getAllContacts(request):
+    if request.method == 'GET':
+        try:
+            contacts = ContactUs.objects.only('id', 'name', 'phone', 'email', 'subject', 'message').all()
+            # Prepare response
+            result = [
+                {
+                    'contact_id': contact.id,
+                    'name': contact.name,
+                    'phone': contact.phone,
+                    'email': contact.email,
+                    'subject': contact.subject,
+                    'message': contact.message,
+                }
+                for contact in contacts
+            ]
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {"contacts": result},
+                    status=200
+                )
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'error': str(e)},
+                    status=500
+                )
+            )
+    else:
+        return JsonResponse(
+            bad_response(
+                request.method,
+                {'error': 'Method not allowed'},
+                status=405
+            )
+        )
+#============ get by id =================
+@csrf_exempt
+def getContactById(request, contact_id):
+    if request.method == 'GET':
+        try:
+            contact = ContactUs.objects.only('id', 'name', 'phone', 'email', 'subject', 'message').get(id=contact_id)
+            contact_data = {
+                'id': contact.id,
+                'name': contact.name,
+                'phone': contact.phone,
+                'email': contact.email,
+                'subject': contact.subject,
+                'message': contact.message,
+            }
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {'contact': contact_data},
+                    status=200
+                )
+            )
+        except ContactUs.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'error': 'Contact not found'},
+                    status=404
+                )
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'error': str(e)},
+                    status=500
+                )
+            )
+    else:
+        return JsonResponse(
+            bad_response(
+                request.method,
+                {'error': 'Method not allowed'},
+                status=405
+            )
+        )
 
 
 
