@@ -12,4 +12,6 @@ urlpatterns = [
     path('search/', listServiceProviders, name='listServiceProviders'),
     path('create/profile/<int:service_provider_id>/', createSpProfile, name='createSpProfile'),
     path('create/service/request/', createServiceRequest, name='createServiceRequest'),
+    path('update/profile/<int:service_provider_id>/', updateSpProfile, name='update_sp_profile'),
+    path('update/profile/image/<int:service_provider_id>/', updateSpProfilePicture, name='updateSpProfilePicture'),
 ]
