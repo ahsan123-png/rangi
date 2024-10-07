@@ -203,6 +203,7 @@ def getAllServiceProviders(request) -> JsonResponse:
                 'address': provider.user.address,
                 'zip_code': provider.user.zipCode,
                 'company_name': provider.company_name,
+                'category_id': provider.category.id,
                 'category': provider.category.name,
                 # 'subcategory': provider.subcategory.name,  # Assuming ServiceProvider doesn't have subcategory directly
                 'average_rating': provider.average_rating if provider.average_rating is not None else 0.0,
@@ -320,6 +321,7 @@ def getServiceProvider(request, provider_id) -> JsonResponse:
                 'address': service_provider.user.address,
                 'zip_code': service_provider.user.zipCode,
                 'company_name': service_provider.company_name,
+                'category_id': service_provider.category.id,
                 'category': service_provider.category.name,
                 'subcategory': service_provider.subcategory.name,
                 'number_of_people': service_provider.number_of_people,
