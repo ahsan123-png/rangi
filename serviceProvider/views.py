@@ -508,17 +508,17 @@ def listServiceProviders(request):
 def createSpProfile(request,service_provider_id):
     if request.method == 'POST':
         try:
-            data = get_request_body(request)
+            data = request.POST
             base_price = data.get('base_price')
             introduction = data.get('introduction')
             company_founded_date = data.get('company_founded_date')
             payment_methods = data.get('payment_methods')
             services_included = data.get('services_included', [])
-            # Fetching service provider
             service_provider = ServiceProvider.objects.get(id=service_provider_id)
-            # Converting date string to a datetime object
             company_founded_date_obj = datetime.strptime(company_founded_date, '%Y-%m-%d')
-            # Creating or updating SPProfile
+            profile_picture = request.FILES.get('profile_picture')
+            company_founded_date_obj = datetime.strptime(company_founded_date, '%Y-%m-%d')
+            service_provider = ServiceProvider.objects.get(id=service_provider_id)
             sp_profile, created = SPProfile.objects.update_or_create(
                 service_provider=service_provider,
                 defaults={
@@ -528,12 +528,16 @@ def createSpProfile(request,service_provider_id):
                     'payment_methods': payment_methods,
                 }
             )
-            # Managing services included
-            sp_profile.services_included.clear()  # Clear old subcategories
+            if profile_picture:
+                sp_profile.profile_picture.save(profile_picture.name, profile_picture)
+            sp_profile.services_included.clear()
             for subcategory_id in services_included:
                 subcategory = Subcategory.objects.get(id=subcategory_id)
                 sp_profile.services_included.add(subcategory)
-            return JsonResponse({
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {
                 "success": True,
                 "message": "SP Profile created/updated successfully!",
                 "profile": {
@@ -541,25 +545,37 @@ def createSpProfile(request,service_provider_id):
                     "introduction": sp_profile.introduction,
                     "company_founded_date": sp_profile.company_founded_date.strftime('%Y-%m-%d'),
                     "payment_methods": sp_profile.payment_methods,
-                    "services_included": [subcategory.name for subcategory in sp_profile.services_included.all()]
+                    "services_included": [subcategory.name for subcategory in sp_profile.services_included.all()],
+                    "profile_picture_url": sp_profile.profile_picture.url if sp_profile.profile_picture else None,
                 }
-            }, status=201)
+            }, status=201
+                )
+            )
         except ServiceProvider.DoesNotExist:
-            return JsonResponse({
-                "success": False,
-                "error": "Service provider not found."
-            }, status=404)
-
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {   'success': False,
+                        'error': 'Service provider not found.'},
+                    status=404
+                )
+            )
         except Exception as e:
-            return JsonResponse({
-                "success": False,
-                "error": str(e)
-            }, status=500)
-
-    return JsonResponse({
-        "success": False,
-        "error": "Method not allowed."
-    }, status=405)
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {   'success': False,
+                        'error': str(e)},
+                    status=500
+                )
+            )
+    return JsonResponse(
+        bad_response(
+            request.method,
+            {'error': 'Method not allowed'},
+            status=405
+        )
+    )
 #================ Service Request =============================
 @csrf_exempt
 def createServiceRequest(request):
@@ -628,5 +644,143 @@ def createServiceRequest(request):
                 "error": "Method not allowed"
             }, status=405))
 
+# ============== Update user Profile details =================
+@csrf_exempt
+def updateSpProfile(request, service_provider_id):
+    if request.method == 'PATCH':  
+        try:
+            data = get_request_body(request)
+            base_price = data.get('base_price')
+            introduction = data.get('introduction')
+            company_founded_date = data.get('company_founded_date')
+            payment_methods = data.get('payment_methods')
+            services_included = data.get('services_included', [])
+            service_provider = ServiceProvider.objects.get(id=service_provider_id)
+            try:
+                sp_profile = SPProfile.objects.get(service_provider=service_provider)
+            except SPProfile.DoesNotExist:
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {'success': False, 'error': 'SP Profile not found.'},
+                        status=404
+                    )
+                )
+            if base_price is not None:
+                sp_profile.base_price = base_price
+            if introduction is not None:
+                sp_profile.introduction = introduction
+            if company_founded_date:
+                company_founded_date_obj = datetime.strptime(company_founded_date, '%Y-%m-%d')
+                sp_profile.company_founded_date = company_founded_date_obj
+            if payment_methods is not None:
+                sp_profile.payment_methods = payment_methods
+            if services_included:
+                sp_profile.services_included.clear()
+                for subcategory_id in services_included:
+                    subcategory = Subcategory.objects.get(id=subcategory_id)
+                    sp_profile.services_included.add(subcategory)
+            sp_profile.save()
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {
+                        "success": True,
+                        "message": "SP Profile updated successfully!",
+                        "profile": {
+                            "base_price": sp_profile.base_price,
+                            "introduction": sp_profile.introduction,
+                            "company_founded_date": sp_profile.company_founded_date.strftime('%Y-%m-%d'),
+                            "payment_methods": sp_profile.payment_methods,
+                            "services_included": [subcategory.name for subcategory in sp_profile.services_included.all()],
+                        }
+                    },
+                    status=200
+                )
+            )
+        except ServiceProvider.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'success': False, 'error': 'Service provider not found.'},
+                    status=404
+                )
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'success': False, 'error': str(e)},
+                    status=500
+                )
+            )
+    return JsonResponse(
+        bad_response(
+            request.method,
+            {'error': 'Method not allowed'},
+            status=405
+        )
+    )
 
+#================== update PRO Profile image ===================
+@csrf_exempt
+def updateSpProfilePicture(request, service_provider_id):
+    if request.method == "POST":
+        try:
+            profile_picture = request.FILES.get('profile_picture')
+            if not profile_picture:
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {'success': False, 'error': 'Profile picture not provided.'},
+                        status=400
+                    )
+                )
+            service_provider = ServiceProvider.objects.get(id=service_provider_id)
+            try:
+                sp_profile = SPProfile.objects.get(service_provider=service_provider)
+            except SPProfile.DoesNotExist:
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {'success': False, 'error': 'SP Profile not found.'},
+                        status=404
+                    )
+                )
+            sp_profile.profile_picture.save(profile_picture.name, profile_picture)
+            sp_profile.save()
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {
+                        "success": True,
+                        "message": "Profile picture updated successfully!",
+                        "profile_picture_url": sp_profile.profile_picture.url
+                    },
+                    status=200
+                )
+            )
+        except ServiceProvider.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'success': False, 'error': 'Service provider not found.'},
+                    status=404
+                )
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'success': False, 'error': str(e)},
+                    status=500
+                )
+            )
+    return JsonResponse(
+        bad_response(
+            request.method,
+            {'error': 'Method not allowed'},
+            status=405
+        )
+    )
 

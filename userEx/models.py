@@ -62,6 +62,7 @@ class SPProfile(models.Model):
     company_founded_date = models.DateField()
     payment_methods = models.CharField(max_length=200)
     services_included = models.ManyToManyField(Subcategory)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
 
 # ============= Service Requests =============
 class ServiceRequest(models.Model):
