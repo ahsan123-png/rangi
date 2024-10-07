@@ -513,15 +513,13 @@ def listServiceProviders(request):
 def createSpProfile(request,service_provider_id):
     if request.method == 'POST':
         try:
-            data = request.POST
+            data = get_request_body(request)
             base_price = data.get('base_price')
             introduction = data.get('introduction')
             company_founded_date = data.get('company_founded_date')
             payment_methods = data.get('payment_methods')
             services_included = data.get('services_included', [])
             service_provider = ServiceProvider.objects.get(id=service_provider_id)
-            company_founded_date_obj = datetime.strptime(company_founded_date, '%Y-%m-%d')
-            profile_picture = request.FILES.get('profile_picture')
             company_founded_date_obj = datetime.strptime(company_founded_date, '%Y-%m-%d')
             service_provider = ServiceProvider.objects.get(id=service_provider_id)
             sp_profile, created = SPProfile.objects.update_or_create(
@@ -533,9 +531,6 @@ def createSpProfile(request,service_provider_id):
                     'payment_methods': payment_methods,
                 }
             )
-            if profile_picture:
-                sp_profile.profile_picture.save(profile_picture.name, profile_picture)
-            sp_profile.services_included.clear()
             for subcategory_id in services_included:
                 subcategory = Subcategory.objects.get(id=subcategory_id)
                 sp_profile.services_included.add(subcategory)
@@ -551,7 +546,6 @@ def createSpProfile(request,service_provider_id):
                     "company_founded_date": sp_profile.company_founded_date.strftime('%Y-%m-%d'),
                     "payment_methods": sp_profile.payment_methods,
                     "services_included": [subcategory.name for subcategory in sp_profile.services_included.all()],
-                    "profile_picture_url": sp_profile.profile_picture.url if sp_profile.profile_picture else None,
                 }
             }, status=201
                 )
