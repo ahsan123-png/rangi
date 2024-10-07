@@ -189,7 +189,8 @@ def getAllServiceProviders(request) -> JsonResponse:
                     "introduction": sp_profile.introduction,
                     "company_founded_date": sp_profile.company_founded_date,
                     "payment_methods": sp_profile.payment_methods,
-                    "services_included": [service.name for service in sp_profile.services_included.all()]
+                    "services_included": [service.name for service in sp_profile.services_included.all()],
+                    "profile_picture_url": sp_profile.profile_picture.url if sp_profile.profile_picture else None
                 }
             except SPProfile.DoesNotExist:
                 sp_profile_data = {}
@@ -306,7 +307,8 @@ def getServiceProvider(request, provider_id) -> JsonResponse:
                     "introduction": sp_profile.introduction,
                     "company_founded_date": sp_profile.company_founded_date,
                     "payment_methods": sp_profile.payment_methods,
-                    "services_included": [service.name for service in sp_profile.services_included.all()]
+                    "services_included": [service.name for service in sp_profile.services_included.all()],
+                    "profile_picture_url": sp_profile.profile_picture.url if sp_profile.profile_picture else None
                 }
             except SPProfile.DoesNotExist:
                 sp_profile_data = {}
@@ -323,7 +325,8 @@ def getServiceProvider(request, provider_id) -> JsonResponse:
                 'number_of_people': service_provider.number_of_people,
                 'status': service_provider.status,
                 'average_rating': service_provider.average_rating if service_provider.average_rating is not None else 0.0,
-                'sp_profile': sp_profile_data  # Add SP Profile data
+                'sp_profile': sp_profile_data
+                
             }
             return JsonResponse(
                 good_response(
