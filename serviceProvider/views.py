@@ -541,6 +541,7 @@ def createSpProfile(request,service_provider_id):
                 "success": True,
                 "message": "SP Profile created/updated successfully!",
                 "profile": {
+                    "sp_id": service_provider_id,
                     "base_price": sp_profile.base_price,
                     "introduction": sp_profile.introduction,
                     "company_founded_date": sp_profile.company_founded_date.strftime('%Y-%m-%d'),
