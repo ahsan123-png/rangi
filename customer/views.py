@@ -11,6 +11,7 @@ import re
 from django.utils.text import slugify
 from django.core.files.storage import default_storage
 from django.middleware.csrf import get_token
+from django.db.models import Prefetch
 # Create your views here.
 
 @csrf_exempt
@@ -107,47 +108,51 @@ def registerCustomer(request) -> JsonResponse:
 @csrf_exempt
 def getAllCustomers(request) -> JsonResponse:
     if request.method == 'GET':
-        customers = Customer.objects.all()
-        result = []
-        for customer in customers:
-            result.append({
+        customers = Customer.objects.select_related('user').all()
+        result = [
+            {
                 'id': customer.id,
                 'username': customer.user.username,
                 'email': customer.user.email,
                 'phone_number': customer.phone_number,
                 'address': customer.user.address,
-                'zip_code': customer.user.zipCode
-            })
+                'zip_code': customer.user.zipCode,
+                'profile_picture_url': customer.profile_picture.url if customer.profile_picture else None
+            }
+            for customer in customers
+        ]
         return JsonResponse(
             good_response(
                 request.method,
                 {
-            'message': 'All customers fetched successfully',
-            'customers': result
-        }, status=200
+                    'message': 'All customers fetched successfully',
+                    'customers': result
+                },
+                status=200
             )
         )
-
     return JsonResponse(
         bad_response(
             request.method,
-            {'error': 'Method not allowed'}, status=405
+            {'error': 'Method not allowed'}, 
+            status=405
         )
     )
 # get customers
-@csrf_exempt
 def getCustomer(request, customer_id) -> JsonResponse:
     if request.method == 'GET':
         try:
-            customer = Customer.objects.get(id=customer_id)
+            customer = Customer.objects.select_related('user').get(id=customer_id)
             customer_data = {
                 'id': customer.id,
                 'username': customer.user.username,
                 'email': customer.user.email,
                 'phone_number': customer.phone_number,
                 'address': customer.user.address,
-                'zip_code': customer.user.zipCode
+                'zip_code': customer.user.zipCode,
+                'profile_picture_url': customer.profile_picture.url if customer.profile_picture else None
             }
+
             return JsonResponse(
                 good_response(
                     request.method,
@@ -207,7 +212,6 @@ def updateCustomer(request, customer_id) -> JsonResponse:
                     }
                 ), status=200
             )
-
         except Customer.DoesNotExist:
             return JsonResponse(
                 bad_response(
@@ -215,7 +219,6 @@ def updateCustomer(request, customer_id) -> JsonResponse:
                     {'error': 'Customer not found'}, status=404
                 )
             )
-
         except Exception as e:
             return JsonResponse(
                 bad_response(
@@ -223,7 +226,6 @@ def updateCustomer(request, customer_id) -> JsonResponse:
                     {'error': str(e)}, status=500
                 )
             )
-
     return JsonResponse(
         bad_response(
             request.method,
@@ -243,7 +245,6 @@ def deleteCustomer(request, customer_id) -> JsonResponse:
                     {'message': 'Customer deleted successfully'}
                 ), status=200
             )
-
         except Customer.DoesNotExist:
             return JsonResponse(
                 bad_response(
@@ -251,7 +252,6 @@ def deleteCustomer(request, customer_id) -> JsonResponse:
                     {'error': 'Customer not found'}, status=404
                 )
             )
-
         except Exception as e:
             return JsonResponse(
                 bad_response(
@@ -259,14 +259,13 @@ def deleteCustomer(request, customer_id) -> JsonResponse:
                     {'error': str(e)}, status=500
                 )
             )
-
     return JsonResponse(
         bad_response(
             request.method,
             {'error': 'Method not allowed'}, status=405
         )
     )
-#================= Review Opreations =============================
+#================= Review Operations =============================
 #================= Add a Review to Service provider ==================
 
 @csrf_exempt
