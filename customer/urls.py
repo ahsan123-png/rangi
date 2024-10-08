@@ -10,4 +10,5 @@ urlpatterns = [
     path('reviews/serviceprovider/<int:service_provider_id>/',getReviewsByServiceProvider, name='get_reviews_by_service_provider'),
     path('review/update/<int:review_id>/', updateReview, name='update_review'),  # 
     path('review/delete/<int:review_id>/', deleteReview, name='delete_review'), 
+    path('add/profile/<int:customer_id>/', addProfilePicture, name='addProfilePicture'), 
 ]

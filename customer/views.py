@@ -6,8 +6,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
-import json
+import os
 import re
+from django.utils.text import slugify
 from django.core.files.storage import default_storage
 from django.middleware.csrf import get_token
 # Create your views here.
@@ -479,3 +480,65 @@ def deleteReview(request, review_id):
             {"success": False, "error": "Method not allowed."}, status=405
         )
     )
+#============ add profile picture =================
+@csrf_exempt
+def addProfilePicture(request, customer_id):
+    if request.method == 'POST':
+        try:
+            customer = Customer.objects.get(id=customer_id)
+            profile_picture = request.FILES.get('profile_picture')
+            if not profile_picture:
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {'success': False, 'error': 'Profile picture not provided.'},
+                        status=400
+                    )
+                )
+            allowed_extensions = ['.jpg', '.jpeg', '.png']
+            if not profile_picture.name.endswith(tuple(allowed_extensions)):
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {'success': False, 'error': 'Invalid profile picture format. Only JPEG, JPG, and PNG files are allowed.'},
+                        status=400
+                    )
+                )
+            #delete profile picture if it exists save new profile picture
+            if customer.profile_picture:
+                default_storage.delete(customer.profile_picture.name)
+            fileExtension = os.path.splitext(profile_picture.name)[1] 
+            newFileName = f"{slugify(customer.user.username)}_profile_image{fileExtension}" 
+            customer.profile_picture.save(newFileName, profile_picture)
+            customer.save()
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {
+                        "success": True,
+                        "message": "Profile picture added successfully!",
+                        "profile_picture_url": customer.profile_picture.url
+                    }
+                ), status=201
+            )
+        except Customer.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"success": False, "error": "Customer not found."}
+                ), status=404
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"success": False, "error": str(e)}
+                ), status=500
+            )
+    else:
+        return JsonResponse(
+            bad_response(
+                request.method,
+                {"success": False, "error": "Method not allowed."}, status=405
+            )
+        )

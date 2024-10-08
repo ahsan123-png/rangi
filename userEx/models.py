@@ -86,6 +86,7 @@ class Employee(models.Model):
 class Customer(models.Model):
     user = models.OneToOneField(UserEx, on_delete=models.CASCADE)  # Links to the default Django User model
     phone_number = models.CharField(max_length=15)
+    profile_picture = models.ImageField(upload_to='customerDp/', null=True, blank=True)
 
     def __str__(self):
         return self.user.username
