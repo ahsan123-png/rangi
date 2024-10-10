@@ -6,10 +6,12 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
-import json
+import os
 import re
+from django.utils.text import slugify
 from django.core.files.storage import default_storage
 from django.middleware.csrf import get_token
+from django.db.models import Prefetch
 # Create your views here.
 
 @csrf_exempt
@@ -106,47 +108,51 @@ def registerCustomer(request) -> JsonResponse:
 @csrf_exempt
 def getAllCustomers(request) -> JsonResponse:
     if request.method == 'GET':
-        customers = Customer.objects.all()
-        result = []
-        for customer in customers:
-            result.append({
+        customers = Customer.objects.select_related('user').all()
+        result = [
+            {
                 'id': customer.id,
                 'username': customer.user.username,
                 'email': customer.user.email,
                 'phone_number': customer.phone_number,
                 'address': customer.user.address,
-                'zip_code': customer.user.zipCode
-            })
+                'zip_code': customer.user.zipCode,
+                'profile_picture_url': customer.profile_picture.url if customer.profile_picture else None
+            }
+            for customer in customers
+        ]
         return JsonResponse(
             good_response(
                 request.method,
                 {
-            'message': 'All customers fetched successfully',
-            'customers': result
-        }, status=200
+                    'message': 'All customers fetched successfully',
+                    'customers': result
+                },
+                status=200
             )
         )
-
     return JsonResponse(
         bad_response(
             request.method,
-            {'error': 'Method not allowed'}, status=405
+            {'error': 'Method not allowed'}, 
+            status=405
         )
     )
 # get customers
-@csrf_exempt
 def getCustomer(request, customer_id) -> JsonResponse:
     if request.method == 'GET':
         try:
-            customer = Customer.objects.get(id=customer_id)
+            customer = Customer.objects.select_related('user').get(id=customer_id)
             customer_data = {
                 'id': customer.id,
                 'username': customer.user.username,
                 'email': customer.user.email,
                 'phone_number': customer.phone_number,
                 'address': customer.user.address,
-                'zip_code': customer.user.zipCode
+                'zip_code': customer.user.zipCode,
+                'profile_picture_url': customer.profile_picture.url if customer.profile_picture else None
             }
+
             return JsonResponse(
                 good_response(
                     request.method,
@@ -206,7 +212,6 @@ def updateCustomer(request, customer_id) -> JsonResponse:
                     }
                 ), status=200
             )
-
         except Customer.DoesNotExist:
             return JsonResponse(
                 bad_response(
@@ -214,7 +219,6 @@ def updateCustomer(request, customer_id) -> JsonResponse:
                     {'error': 'Customer not found'}, status=404
                 )
             )
-
         except Exception as e:
             return JsonResponse(
                 bad_response(
@@ -222,7 +226,6 @@ def updateCustomer(request, customer_id) -> JsonResponse:
                     {'error': str(e)}, status=500
                 )
             )
-
     return JsonResponse(
         bad_response(
             request.method,
@@ -242,7 +245,6 @@ def deleteCustomer(request, customer_id) -> JsonResponse:
                     {'message': 'Customer deleted successfully'}
                 ), status=200
             )
-
         except Customer.DoesNotExist:
             return JsonResponse(
                 bad_response(
@@ -250,7 +252,6 @@ def deleteCustomer(request, customer_id) -> JsonResponse:
                     {'error': 'Customer not found'}, status=404
                 )
             )
-
         except Exception as e:
             return JsonResponse(
                 bad_response(
@@ -258,14 +259,13 @@ def deleteCustomer(request, customer_id) -> JsonResponse:
                     {'error': str(e)}, status=500
                 )
             )
-
     return JsonResponse(
         bad_response(
             request.method,
             {'error': 'Method not allowed'}, status=405
         )
     )
-#================= Review Opreations =============================
+#================= Review Operations =============================
 #================= Add a Review to Service provider ==================
 
 @csrf_exempt
@@ -479,3 +479,65 @@ def deleteReview(request, review_id):
             {"success": False, "error": "Method not allowed."}, status=405
         )
     )
+#============ add profile picture =================
+@csrf_exempt
+def addProfilePicture(request, customer_id):
+    if request.method == 'POST':
+        try:
+            customer = Customer.objects.get(id=customer_id)
+            profile_picture = request.FILES.get('profile_picture')
+            if not profile_picture:
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {'success': False, 'error': 'Profile picture not provided.'},
+                        status=400
+                    )
+                )
+            allowed_extensions = ['.jpg', '.jpeg', '.png' , 'jfif']
+            if not profile_picture.name.endswith(tuple(allowed_extensions)):
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {'success': False, 'error': 'Invalid profile picture format. Only JPEG, JPG, and PNG files are allowed.'},
+                        status=400
+                    )
+                )
+            #delete profile picture if it exists save new profile picture
+            if customer.profile_picture:
+                default_storage.delete(customer.profile_picture.name)
+            fileExtension = os.path.splitext(profile_picture.name)[1] 
+            newFileName = f"{slugify(customer.user.username)}_profile_image{fileExtension}" 
+            customer.profile_picture.save(newFileName, profile_picture)
+            customer.save()
+            return JsonResponse(
+                good_response(
+                    request.method,
+                    {
+                        "success": True,
+                        "message": "Profile picture added successfully!",
+                        "profile_picture_url": customer.profile_picture.url
+                    }
+                ), status=201
+            )
+        except Customer.DoesNotExist:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"success": False, "error": "Customer not found."}
+                ), status=404
+            )
+        except Exception as e:
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {"success": False, "error": str(e)}
+                ), status=500
+            )
+    else:
+        return JsonResponse(
+            bad_response(
+                request.method,
+                {"success": False, "error": "Method not allowed."}, status=405
+            )
+        )

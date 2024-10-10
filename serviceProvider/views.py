@@ -13,6 +13,8 @@ from django.middleware.csrf import get_token
 from datetime import datetime
 from django.db.models import Avg
 from django.db.models import Prefetch
+import os
+from django.utils.text import slugify
 # Create your views here.
 @csrf_exempt
 def registerServiceProvider(request) -> JsonResponse:
@@ -727,6 +729,7 @@ def updateSpProfile(request, service_provider_id):
 def updateSpProfilePicture(request, service_provider_id):
     if request.method == "POST":
         try:
+            # Get the uploaded profile picture
             profile_picture = request.FILES.get('profile_picture')
             if not profile_picture:
                 return JsonResponse(
@@ -736,26 +739,38 @@ def updateSpProfilePicture(request, service_provider_id):
                         status=400
                     )
                 )
-            service_provider = ServiceProvider.objects.get(id=service_provider_id)
+            serviceProvider = ServiceProvider.objects.get(id=service_provider_id)
             try:
-                sp_profile = SPProfile.objects.get(service_provider=service_provider)
+                spProfile = SPProfile.objects.get(service_provider=serviceProvider)
             except SPProfile.DoesNotExist:
                 return JsonResponse(
                     bad_response(
                         request.method,
-                        {'success': False, 'error': 'SP Profile not found.'},
+                        {'success': False, 'error': 'Service Provider Profile not found.'},
                         status=404
                     )
                 )
-            sp_profile.profile_picture.save(profile_picture.name, profile_picture)
-            sp_profile.save()
+            file_extension = os.path.splitext(profile_picture.name)[1]
+            if file_extension not in ['.jpg', '.jpeg', '.png', '.jfif']:
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {'success': False, 'error': 'Invalid profile picture format. Only .jpg, .jpeg, .png are allowed.'},
+                        status=400
+                    )
+                )
+            if spProfile.profile_picture:
+                spProfile.profile_picture.delete()
+            new_file_name = f"{slugify(serviceProvider.user.username)}_profile_image{file_extension}"
+            spProfile.profile_picture.save(new_file_name, profile_picture)
+            spProfile.save()  # Save the profile changes
             return JsonResponse(
                 good_response(
                     request.method,
                     {
                         "success": True,
                         "message": "Profile picture updated successfully!",
-                        "profile_picture_url": sp_profile.profile_picture.url
+                        "profile_picture_url": spProfile.profile_picture.url
                     },
                     status=200
                 )
