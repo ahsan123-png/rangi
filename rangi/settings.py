@@ -101,6 +101,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://thefixit4u.com", 
+    "http://thefixit4u.com",
+    "https://51.20.63.119",
 ]
 CORS_ALLOW_HEADERS = [
     'authorization',
