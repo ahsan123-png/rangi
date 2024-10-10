@@ -6,6 +6,13 @@ from .models import *
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.mail import send_mail  
+from django.utils.http import urlsafe_base64_encode  
+from django.utils.encoding import force_bytes  
+from django.contrib.auth.tokens import default_token_generator  
+from django.contrib.sites.shortcuts import get_current_site  
+from django.utils.encoding import force_str 
+from django.utils.http import urlsafe_base64_decode  
 # Create your views here.
 
 
@@ -471,8 +478,36 @@ def getContactById(request, contact_id):
             )
         )
 
+#============== Send Verification mail to user =====================
+def send_verification_email(user, request):  
+    current_site = get_current_site(request)  
+    token = default_token_generator.make_token(user)  
+    uid = urlsafe_base64_encode(force_bytes(user.pk))  
+    verification_link = f"http://{current_site.domain}/activate/{uid}/{token}/"  
 
-
+    subject = 'Activate Your Account'  
+    message = f'Hi {user.first_name},\n\nPlease activate your account by clicking the link: {verification_link}\n\nThank you!'  
+    
+    send_mail(  
+        subject,  
+        message,  
+        'support@thefixit4u.com',  # Your verified email address  
+        [user.email],  
+        fail_silently=False,  
+    ) 
+# ================== ACtive account =================
+def activateAccount(request, uidb64, token):  
+    try:  
+        uid =force_str(urlsafe_base64_decode(uidb64))  
+        user = UserEx.objects.get(pk=uid)  
+        if default_token_generator.check_token(user, token):  
+            user.is_active = True  # Or any other field you use to mark as verified  
+            user.save()  
+            return JsonResponse({'message': 'Account activated successfully!'}, status=200)  
+        else:  
+            return JsonResponse({'error': 'Activation link is invalid!'}, status=400)  
+    except UserEx.DoesNotExist:  
+        return JsonResponse({'error': 'User not found!'}, status=404) 
 
 
 

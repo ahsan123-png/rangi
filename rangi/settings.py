@@ -111,3 +111,13 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
 ]
 CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+import environ
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+# Email settings
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.thefixit4u.com')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD =env('EMAIL_HOST_PASSWORD')
