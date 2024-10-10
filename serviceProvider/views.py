@@ -751,7 +751,7 @@ def updateSpProfilePicture(request, service_provider_id):
                     )
                 )
             file_extension = os.path.splitext(profile_picture.name)[1]
-            if file_extension not in ['.jpg', '.jpeg', '.png']:
+            if file_extension not in ['.jpg', '.jpeg', '.png', '.jfif']:
                 return JsonResponse(
                     bad_response(
                         request.method,
