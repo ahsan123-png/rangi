@@ -494,7 +494,7 @@ def addProfilePicture(request, customer_id):
                         status=400
                     )
                 )
-            allowed_extensions = ['.jpg', '.jpeg', '.png']
+            allowed_extensions = ['.jpg', '.jpeg', '.png' , 'jfif']
             if not profile_picture.name.endswith(tuple(allowed_extensions)):
                 return JsonResponse(
                     bad_response(
