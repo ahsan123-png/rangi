@@ -48,11 +48,17 @@ def registerServiceProvider(request) -> JsonResponse:
         if UserEx.objects.filter(username=username).exists():
             return JsonResponse({'error': 'Username already exists'}, status=400)
         try:
-            user = UserEx.objects.create_user(username=username, password=password, email=email, first_name=first_name, last_name=last_name,name=name)
+            user = UserEx.objects.create_user(
+            username=username,
+            password=password,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,name=name)
             user.isServiceProvider = isServiceProvider
             user.address = address
             user.zipCode = zip_code
             user.save()
+            send_verification_email(user, request)  
             try:
                 category = Category.objects.get(id=category_id)
                 subcategory = Subcategory.objects.get(id=subcategory_id)
