@@ -62,6 +62,12 @@ def addSubcategory(request):
                         request.method,
                         {"error": "Category id is required"}, status=400)
                 )
+            if not additional_price:
+                return JsonResponse(
+                    bad_response(
+                        request.method,
+                        {"error": "Additional price is required"}, status=400)
+                )
             try:
                 category = Category.objects.get(id=category_id)
             except ObjectDoesNotExist:
