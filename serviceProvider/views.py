@@ -145,14 +145,22 @@ def loginView(request):
             'zip_code': user_ex.zipCode,
             'isServiceProvider': user_ex.isServiceProvider,
             'isCustomer': user_ex.isCustomer,
+            'profile_picture_url': None,
             'csrf_token': csrf_token
         }
         if hasattr(user_ex, 'customer'):
-            user_data['id'] = user_ex.customer.id
-            user_data['phone_number'] = user_ex.customer.phone_number
+            customer = user_ex.customer
+            user_data['id'] = customer.id
+            user_data['phone_number'] = customer.phone_number
+            if user_ex.customer.profile_picture:
+                user_data['profile_picture_url'] = user_ex.customer.profile_picture.url
         elif hasattr(user_ex, 'serviceprovider'):
-            user_data['id'] = user_ex.serviceprovider.id
-            user_data['phone_number'] = user_ex.serviceprovider.phone_number
+            service_provider = user_ex.serviceprovider
+            user_data['id'] = service_provider.id
+            user_data['phone_number'] = service_provider.phone_number
+            if hasattr(user_ex.serviceprovider, 'spprofile') and user_ex.serviceprovider.spprofile.profile_picture:
+                user_data['profile_picture_url'] = user_ex.serviceprovider.spprofile.profile_picture.url
+
         return JsonResponse(
             good_response(
                 request.method,
