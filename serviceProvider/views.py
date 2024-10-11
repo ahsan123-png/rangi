@@ -454,21 +454,18 @@ def listServiceProviders(request):
         try:
             data = get_request_body(request)
             category_id = data.get('category_id')
-            subcategory_id = data.get('subcategory_id')
             zip_code = data.get('zip_code')
             service_providers = (
                 ServiceProvider.objects
                 .select_related('user', 'category', 'subcategory')
                 .prefetch_related(
-                    Prefetch('spprofile'),  # Prefetch SP profile to get the base price
-                    Prefetch('reviews')  # Prefetch reviews to calculate the average rating
+                    Prefetch('spprofile'),
+                    Prefetch('reviews')
                 )
-                .annotate(average_rating=Avg('reviews__rating'))  # Annotate the average rating from the reviews
+                .annotate(average_rating=Avg('reviews__rating'))
             )
             if category_id:
                 service_providers = service_providers.filter(category_id=category_id)
-            if subcategory_id:
-                service_providers = service_providers.filter(subcategory_id=subcategory_id)
             if zip_code:
                 service_providers = service_providers.filter(user__zipCode=zip_code)
             if not service_providers.exists():
@@ -478,10 +475,9 @@ def listServiceProviders(request):
                 }, status=404)
             result = []
             for sp in service_providers:
-                # Get SPProfile details
                 sp_profile = getattr(sp, 'spprofile', None)
                 base_price = float(sp_profile.base_price) if sp_profile else 0.0
-
+                profile_picture_url = sp_profile.profile_picture.url if sp_profile and sp_profile.profile_picture else None
                 result.append({
                     "service_provider_id": sp.id,
                     "category_id": sp.category.id,
@@ -493,8 +489,10 @@ def listServiceProviders(request):
                     "zip_code": sp.user.zipCode,
                     "status": sp.status,
                     "number_of_people": sp.number_of_people,
-                    "average_rating": sp.average_rating if sp.average_rating is not None else 0.0,  # Average rating
-                    "base_price": base_price  # Base price from SPProfile
+                    "average_rating": sp.average_rating if sp.average_rating is not None else 0.0, 
+                    "base_price": base_price,
+                    "profile_picture": profile_picture_url
+                    
                 })
             return JsonResponse({
                 "success": True,
