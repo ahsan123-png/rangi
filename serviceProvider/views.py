@@ -55,7 +55,7 @@ def registerServiceProvider(request) -> JsonResponse:
                     status=409
                 )
             )
-        if Customer.objects.filter(phone_number=phone_number).exists():
+        if ServiceProvider.objects.filter(phone_number=phone_number).exists():
             return JsonResponse(
                 bad_response(
                     request.method,
