@@ -8,6 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 import os
 import re
+from django.db.models import Q
 from django.utils.text import slugify
 from django.core.files.storage import default_storage
 from django.middleware.csrf import get_token
@@ -55,11 +56,20 @@ def registerCustomer(request) -> JsonResponse:
                     {'error': 'Invalid email format'}, status=400
                 )
             )
-        if UserEx.objects.filter(username=username).exists():
+        if UserEx.objects.filter(Q(username=username) | Q(email=email)).exists():
             return JsonResponse(
                 bad_response(
                     request.method,
-                    {'error': 'Username already exists'}, status=400
+                    {'error': 'email already taken try another account'}, 
+                    status=409
+                )
+            )
+        if Customer.objects.filter(phone_number=phone_number).exists():
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'error': 'Phone number already exists'}, 
+                    status=409
                 )
             )
         try:

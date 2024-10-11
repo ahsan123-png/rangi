@@ -47,10 +47,32 @@ def registerServiceProvider(request) -> JsonResponse:
         phone_number = clean_phone_number(phone_number)
         if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
             return JsonResponse({'error': 'Invalid email address'}, status=400)
+        if UserEx.objects.filter(Q(username=username) | Q(email=email)).exists():
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'error': 'email already taken try another one'}, 
+                    status=409
+                )
+            )
+        if Customer.objects.filter(phone_number=phone_number).exists():
+            return JsonResponse(
+                bad_response(
+                    request.method,
+                    {'error': 'Phone number already exists'}, 
+                    status=409
+                )
+            )
         if UserEx.objects.filter(username=username).exists():
             return JsonResponse({'error': 'Username already exists'}, status=400)
         try:
-            user = UserEx.objects.create_user(username=username, password=password, email=email, first_name=first_name, last_name=last_name,name=name)
+            user = UserEx.objects.create_user(
+            username=username,
+            password=password,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            name=name)
             user.isServiceProvider = isServiceProvider
             user.address = address
             user.zipCode = zip_code
