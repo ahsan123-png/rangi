@@ -1,0 +1,7 @@
+Hello from {{ Fix IT 4 u }}!
+
+You're receiving this email because user {{ user.username }} has given your email address to register an account on {{ Fix it for you }}.
+
+To confirm this is correct, go to {{ activate_url }}
+
+Thank you for using {{ thefixit4u }}!

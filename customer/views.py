@@ -1,4 +1,5 @@
-from django.shortcuts import render
+import os
+import re
 from userEx.models import *
 from userEx.serializers import *
 from userEx.views import *
@@ -6,13 +7,15 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
-import os
-import re
 from django.db.models import Q
 from django.utils.text import slugify
 from django.core.files.storage import default_storage
 from django.middleware.csrf import get_token
-from django.db.models import Prefetch
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from django.conf import settings
+from django.core.mail import send_mail
 # Create your views here.
 
 @csrf_exempt
@@ -81,15 +84,27 @@ def registerCustomer(request) -> JsonResponse:
             last_name=last_name,
             name=name)
             user.isCustomer = True
+            user.is_active = False
             user.address = address
             user.zipCode = zip_code
             user.save()
             customer = Customer(user=user, phone_number=phone_number)
             customer.save()
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            activation_link = f"{settings.FRONTEND_URL}/activate/{uid}/{token}/"
+            send_mail(
+                subject="Activate your account",
+                message=f"Hi {user.first_name},\n\nPlease activate your account by clicking the link below:\n\n{activation_link}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
             return JsonResponse(
                 good_response(
                     request.method,
                     {
+                        'message': 'Service provider registered successfully. Please confirm your email to activate the account.',
                         'id': customer.id,
                         'username': username,
                         'email': email,
