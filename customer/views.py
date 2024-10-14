@@ -205,43 +205,22 @@ def updateCustomer(request, customer_id) -> JsonResponse:
         try:
             customer = Customer.objects.get(id=customer_id)
             data = get_request_body(request)
-            new_email = data.get('email')  
-            new_phone_number = data.get('phone_number')  
+            new_email = data.get('email')
+            new_phone_number = data.get('phone_number')
             if new_email:
-                if new_email == customer.user.email:
-                    return JsonResponse(
-                        bad_response(
-                            request.method,
-                            {'error': 'The email is already set. Try another one.'},
-                            status=400
-                        )
-                    )
                 if UserEx.objects.filter(email=new_email).exclude(id=customer.user.id).exists():
                     return JsonResponse(
-                        bad_response(
-                            request.method,
-                            {'error': 'Email is already taken, try another.'},
-                            status=400
-                        )
-                    )
+                bad_response(
+                request.method,
+                {'error': 'Email is already taken, try another.'},
+                status=400))
                 customer.user.email = new_email
             if new_phone_number:
-                if new_phone_number == customer.phone_number:
-                    return JsonResponse(
-                        bad_response(
-                            request.method,
-                            {'error': 'The phone number is already set. Try another one.'},
-                            status=400
-                        )
-                    )
                 if Customer.objects.filter(phone_number=new_phone_number).exclude(id=customer.id).exists():
                     return JsonResponse(
-                        bad_response(
-                            request.method,
-                            {'error': 'Phone number is already taken, try another.'},
-                            status=400
-                        )
-                    )
+                bad_response(
+                request.method,
+                {'error': 'Phone number is already taken, try another.'}, status=400))
                 customer.phone_number = new_phone_number
             customer.user.first_name = data.get('first_name', customer.user.first_name)
             customer.user.last_name = data.get('last_name', customer.user.last_name)
@@ -250,44 +229,27 @@ def updateCustomer(request, customer_id) -> JsonResponse:
             customer.user.save()
             customer.save()
             return JsonResponse(
-                good_response(
-                    request.method,
-                    {
-                        'customer': {
-                            'id': customer.id,
-                            'username': customer.user.username,
-                            'email': customer.user.email,
-                            'phone_number': customer.phone_number,
-                            'address': customer.user.address,
-                            'zip_code': customer.user.zipCode
-                        }
-                    }
-                ),
-                status=200
-            )
+        good_response(
+        request.method,
+        {'customer': {'id': customer.id, 'username': customer.user.username, 'email': customer.user.email, 'phone_number': customer.phone_number, 'address': customer.user.address, 'zip_code': customer.user.zipCode}}, status=200))
         except Customer.DoesNotExist:
             return JsonResponse(
                 bad_response(
-                    request.method,
-                    {'error': 'Customer not found'},
-                    status=404
-                )
-            )
+                request.method,
+                {'error': 'Customer not found'},
+                status=404))
         except Exception as e:
             return JsonResponse(
-                bad_response(
+                    bad_response(
                     request.method,
                     {'error': str(e)},
-                    status=500
-                )
-            )
+                    status=500))
     return JsonResponse(
         bad_response(
-            request.method,
-            {'error': 'Method not allowed'},
-            status=405
-        )
-    )
+        request.method,
+        {'error': 'Method not allowed'},
+        status=405))
+
 #delete customer
 @csrf_exempt
 def deleteCustomer(request, customer_id) -> JsonResponse:
