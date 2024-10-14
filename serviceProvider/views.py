@@ -284,93 +284,55 @@ def updateServiceProvider(request, provider_id) -> JsonResponse:
             data = get_request_body(request)
         except ValueError:
             return JsonResponse(
-                bad_response(
-                    request.method,
-                    {'error': 'Invalid request body'},
-                    status=400
-                )
-            )
+        bad_response(request.method,
+        {'error': 'Invalid request body'},
+        status=400))
         try:
             provider = ServiceProvider.objects.get(id=provider_id)
         except ObjectDoesNotExist:
             return JsonResponse(
-                bad_response(
-                    request.method,
-                    {'error': 'Service provider not found'},
-                    status=404
-                )
-            )
-        new_email = data.get('email') 
-        new_phone_number = data.get('phone_number') 
+        bad_response(
+        request.method,
+        {'error': 'Service provider not found'},
+        status=404))
+        new_email = data.get('email')
         if new_email:
-            if new_email == provider.user.email:
-                return JsonResponse(
-                    bad_response(
-                        request.method,
-                        {'error': 'The email is already set. Try another one.'},
-                        status=400
-                    )
-                )
             if UserEx.objects.filter(email=new_email).exclude(id=provider.user.id).exists():
                 return JsonResponse(
-                    bad_response(
-                        request.method,
-                        {'error': 'Email is already taken, try another.'},
-                        status=400
-                    )
-                )
+            bad_response(
+            request.method,
+            {'error': 'Email is already taken, try another.'},
+            status=400))
             provider.user.email = new_email
+        new_phone_number = data.get('phone_number')
         if new_phone_number:
             cleaned_phone_number = clean_phone_number(new_phone_number)
-            if cleaned_phone_number == provider.phone_number:
-                return JsonResponse(
-                    bad_response(
-                        request.method,
-                        {'error': 'The phone number is already set. Try another one.'},
-                        status=400
-                    )
-                )
             if ServiceProvider.objects.filter(phone_number=cleaned_phone_number).exclude(id=provider.id).exists():
                 return JsonResponse(
-                    bad_response(
-                        request.method,
-                        {'error': 'Phone number is already taken, try another.'},
-                        status=400
-                    )
-                )
+                bad_response(
+                request.method,
+                {'error': 'Phone number is already taken, try another.'},
+                status=400))
             provider.phone_number = cleaned_phone_number
-            provider.phone_number = clean_phone_number(new_phone_number)
         provider.user.first_name = data.get('first_name', provider.user.first_name)
         provider.user.last_name = data.get('last_name', provider.user.last_name)
         provider.company_name = data.get('company_name', provider.company_name)
         provider.user.address = data.get('address', provider.user.address)
         provider.user.zipCode = data.get('zipCode', provider.user.zipCode)
         category_id = data.get('category')
-        subcategory_id = data.get('subcategory')
         if category_id:
             try:
                 category = Category.objects.get(id=category_id)
                 provider.category = category
             except ObjectDoesNotExist:
-                return JsonResponse(
-                    bad_response(
-                        request.method,
-                        {'error': 'Category does not exist'},
-                        status=400
-                    )
-                )
+                return JsonResponse(bad_response(request.method, {'error': 'Category does not exist'}, status=400))
+        subcategory_id = data.get('subcategory')
         if subcategory_id:
             try:
                 subcategory = Subcategory.objects.get(id=subcategory_id)
                 provider.subcategory = subcategory
             except ObjectDoesNotExist:
-                return JsonResponse(
-                    bad_response(
-                        request.method,
-                        {'error': 'Subcategory does not exist'},
-                        status=400
-                    )
-                )
+                return JsonResponse(bad_response(request.method, {'error': 'Subcategory does not exist'}, status=400))
         provider.number_of_people = data.get('number_of_people', provider.number_of_people)
         provider.status = data.get('status', provider.status)
         provider.user.save()
@@ -394,20 +356,16 @@ def updateServiceProvider(request, provider_id) -> JsonResponse:
             }
         }
         return JsonResponse(
-            good_response(
-                request.method,
-                {'message': 'Service provider updated successfully',
-                 'data' : response_data},
-                status=200
-            )
-        )
+        good_response(
+        request.method,
+        {'message': 'Service provider updated successfully', 'data': response_data},
+        status=200))
     return JsonResponse(
-        bad_response(
-            request.method,
-            {'error': 'Method not allowed'},
-            status=405
-        )
-    )
+    bad_response(
+    request.method,
+    {'error': 'Method not allowed'},
+    status=405))
+
 #==================== Get a single service provider =============================
 @csrf_exempt
 def getServiceProvider(request, provider_id) -> JsonResponse:
