@@ -73,7 +73,13 @@ def registerCustomer(request) -> JsonResponse:
                 )
             )
         try:
-            user = UserEx.objects.create_user(username=username, password=password, email=email, first_name=first_name, last_name=last_name, name=name)
+            user = UserEx.objects.create_user(
+            username=username,
+            password=password,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            name=name)
             user.isCustomer = True
             user.address = address
             user.zipCode = zip_code
