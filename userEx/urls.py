@@ -18,5 +18,7 @@ urlpatterns = [
     path('contact_us/',contactView,name="contactView"),
     path('contact_us/all',getAllContacts,name="getAllContacts"),
     path('contact_us/<int:contact_id>/',getContactById,name="getContactById"),
+    # activation
+    path('activate/<str:uidb64>/<str:token>/', activate_user, name='activate_user'),
     
 ]

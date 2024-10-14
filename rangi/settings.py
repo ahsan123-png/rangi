@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+SITE_ID = 1
 load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-*9l4#897#vrk3j+_%ti)(z@)008nz*##p@)+2!(pwj=v%e^tla'
@@ -18,6 +19,13 @@ INSTALLED_APPS = [
     'adminsView',
     'userEx',
     'corsheaders',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+
+
+
 ]
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -28,13 +36,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     
 ]
 ROOT_URLCONF = 'rangi.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -113,3 +122,21 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
 ]
 CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+
+#Email varifications
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'gtxm1306.siteground.biz'
+EMAIL_PORT = 465 
+EMAIL_USE_SSL = True 
+EMAIL_HOST_USER = 'support@api.thefixit4u.com' 
+EMAIL_HOST_PASSWORD = '3N@e@nB5@1'
+DEFAULT_FROM_EMAIL = 'support@api.thefixit4u.com'  
+
+
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+
+DEFAULT_FROM_EMAIL = 'support@api.thefixit4u.com'
+ACCOUNT_EMAIL_SUBJECT_PREFIX = '[TheFixIt4U] '
+FRONTEND_URL = 'https://thefixit4u.com'

@@ -1,3 +1,6 @@
+import os
+import json
+import re
 from django.shortcuts import render
 from userEx.models import *
 from userEx.serializers import *
@@ -6,15 +9,19 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
-import json
-import re
 from django.db.models import Q
 from django.middleware.csrf import get_token
 from datetime import datetime
 from django.db.models import Avg
 from django.db.models import Prefetch
-import os
 from django.utils.text import slugify
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.conf import settings
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth import get_user_model
 # Create your views here.
 @csrf_exempt
 def registerServiceProvider(request) -> JsonResponse:
@@ -73,10 +80,21 @@ def registerServiceProvider(request) -> JsonResponse:
             first_name=first_name,
             last_name=last_name,
             name=name)
+            user.is_active = False
             user.isServiceProvider = isServiceProvider
             user.address = address
             user.zipCode = zip_code
             user.save()
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            activation_link = f"{settings.FRONTEND_URL}/activate/{uid}/{token}/"
+            send_mail(
+                subject="Activate your account",
+                message=f"Hi {user.first_name},\n\nPlease activate your account by clicking the link below:\n\n{activation_link}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
             try:
                 category = Category.objects.get(id=category_id)
                 subcategory = Subcategory.objects.get(id=subcategory_id)
@@ -100,7 +118,7 @@ def registerServiceProvider(request) -> JsonResponse:
             return JsonResponse(
                 good_response(
                     request.method,
-                    {'message': 'Service provider registered successfully',
+                    {'message': 'Service provider registered successfully. Please confirm your email to activate the account.',
                      'id': service_provider.id,
                      'username': username,
                      'email': email,
