@@ -131,12 +131,9 @@ EMAIL_USE_SSL = True
 EMAIL_HOST_USER = 'support@api.thefixit4u.com' 
 EMAIL_HOST_PASSWORD = '3N@e@nB5@1'
 DEFAULT_FROM_EMAIL = 'support@api.thefixit4u.com'  
-
-
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
-
 DEFAULT_FROM_EMAIL = 'support@api.thefixit4u.com'
 ACCOUNT_EMAIL_SUBJECT_PREFIX = '[TheFixIt4U] '
 FRONTEND_URL = 'https://thefixit4u.com'
