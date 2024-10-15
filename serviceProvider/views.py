@@ -651,66 +651,88 @@ def createServiceRequest(request):
             data = get_request_body(request)
             service_provider_id = data.get('service_provider_id')
             category_id = data.get('category_id')
-            subcategory_ids = data.get('subcategories', [])
+            subcategories_data = data.get('subcategories', [])
             service_provider = ServiceProvider.objects.get(id=service_provider_id)
             category = Category.objects.get(id=category_id)
-            subcategories = Subcategory.objects.filter(id__in=subcategory_ids)
             sp_profile = SPProfile.objects.get(service_provider=service_provider)
             base_price = float(sp_profile.base_price)
             total_price = base_price
             included_services_ids = sp_profile.services_included.values_list('id', flat=True)
             additional_services = []
-            for subcategory in subcategories:
+            subcategories_details = []
+            for subcategory_data in subcategories_data:
+                subcategory_id = subcategory_data.get('id')
+                quantity = subcategory_data.get('quantity', 1)
+                try:
+                    subcategory = Subcategory.objects.get(id=subcategory_id)
+                except Subcategory.DoesNotExist:
+                    return JsonResponse(
+                        bad_response(
+                            request.method,
+                            {"error": f"Subcategory with id {subcategory_id} not found"},
+                            status=404
+                        )
+                    )
+                individual_price = float(subcategory.additional_price)
+                individual_total = individual_price * quantity
                 if subcategory.id not in included_services_ids:
-                    total_price += float(subcategory.additional_price)
+                    total_price += individual_total
                     additional_services.append(subcategory.name)
+                subcategories_details.append({
+                    "subcategory_name": subcategory.name,
+                    "quantity": quantity,
+                    "individual_price": individual_price,
+                    "individual_total": individual_total
+                })
             service_request = ServiceRequest.objects.create(
                 service_provider=service_provider,
                 category=category,
-                total_price=total_price)
-            service_request.subcategories.set(subcategories)
-            return JsonResponse(
-                good_response(
-                    request.method,
-                    {
-                        "message": "Service request created successfully!",
-                        "service_request": {
-                            "id": service_request.id,
-                            "service_provider_id": service_request.service_provider.id,
-                            "category_id": service_request.category.id,
-                            "total_price": service_request.total_price,
-                            "subcategories": [subcategory.name for subcategory in service_request.subcategories.all()]
-                        }
-                    },status=201))
-                
+                total_price=total_price
+            )
+            service_request.subcategories.set(Subcategory.objects.filter(id__in=[sub['id'] for sub in subcategories_data]))
+            response_data = {
+                "message": "Service request created successfully!",
+                "service_request": {
+                    "id": service_request.id,
+                    "service_provider_id": service_provider.id,
+                    "category_id": category.id,
+                    "base_price": base_price,
+                    "subcategories": subcategories_details,
+                    "grand_total": total_price
+                }
+            }
+            return JsonResponse(good_response(request.method, response_data, status=201))
         except ServiceProvider.DoesNotExist:
             return JsonResponse(
                 bad_response(
                     request.method,
-                    {
-                        "error": "Service provider not found"
-                    }, status=404))
+                    {"error": "Service provider not found"},
+                    status=404
+                )
+            )
         except Category.DoesNotExist:
             return JsonResponse(
                 bad_response(
                     request.method,
-                    {
-                        "error": "Category not found"
-                    }, status=404))
+                    {"error": "Category not found"},
+                    status=404
+                )
+            )
         except Exception as e:
             return JsonResponse(
                 bad_response(
                     request.method,
-                    {
-                        "error": str(e)
-                    }, status=500))
+                    {"error": str(e)},
+                    status=500
+                )
+            )
     return JsonResponse(
         bad_response(
             request.method,
-            {
-                "error": "Method not allowed"
-            }, status=405))
-
+            {"error": "Method not allowed"},
+            status=405
+        )
+    )
 # ============== Update user Profile details =================
 @csrf_exempt
 def updateSpProfile(request, service_provider_id):
