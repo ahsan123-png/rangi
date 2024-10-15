@@ -1,25 +1,4 @@
-import os
-import json
-import re
-from .models import *
-from userEx.views import *
-from userEx.models import *
-from userEx.serializers import *
-from datetime import datetime
-from django.db.models import Avg
-from django.conf import settings
-from django.db.models import Q
-from django.db.models import Prefetch
-from django.utils.text import slugify
-from django.core.mail import send_mail
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ObjectDoesNotExist
-from django.db import IntegrityError
-from django.middleware.csrf import get_token
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.contrib.auth.tokens import default_token_generator
+from userEx.common_libs import *
 # Create your views here.
 @csrf_exempt
 def registerServiceProvider(request) -> JsonResponse:

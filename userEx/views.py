@@ -1,18 +1,5 @@
-import json
-from .models import *
-from typing import Any
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ValidationError
-from django.core.exceptions import ObjectDoesNotExist
-from django.utils.http import urlsafe_base64_decode
-from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth import get_user_model
-from django.http import JsonResponse
+from .common_libs import *
 # Create your views here.
-
-
 #=============== Add categories and sub-categories =============================
 @csrf_exempt
 def addCategory(request):
