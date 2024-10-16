@@ -695,6 +695,8 @@ def createServiceRequest(request):
                 "service_request": {
                     "id": service_request.id,
                     "service_provider_id": service_provider.id,
+                    "Pro Name": service_provider.user.name,
+                    "Company Name": service_provider.company_name,
                     "category_id": category.id,
                     "category Name":category.name,
                     "base_price": base_price,
