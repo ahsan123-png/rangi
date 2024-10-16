@@ -696,6 +696,7 @@ def createServiceRequest(request):
                     "id": service_request.id,
                     "service_provider_id": service_provider.id,
                     "category_id": category.id,
+                    "category Name":category.name,
                     "base_price": base_price,
                     "subcategories": subcategories_details,
                     "grand_total": total_price
