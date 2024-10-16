@@ -644,6 +644,8 @@ def createSpProfile(request,service_provider_id):
         )
     )
 #================ Service Request =============================
+from django.core.mail import send_mail
+
 @csrf_exempt
 def createServiceRequest(request):
     if request.method == 'POST':
@@ -652,6 +654,13 @@ def createServiceRequest(request):
             service_provider_id = data.get('service_provider_id')
             category_id = data.get('category_id')
             subcategories_data = data.get('subcategories', [])
+            customer_details = data.get('customer_details', {})  
+            extra_services = data.get('extra_services', [])  
+            customer_name = customer_details.get('name')
+            customer_zip_code = customer_details.get('zip_code')
+            customer_address = customer_details.get('address')
+            customer_phone_number = customer_details.get('phone_number')
+            customer_email = customer_details.get('email')
             service_provider = ServiceProvider.objects.get(id=service_provider_id)
             category = Category.objects.get(id=category_id)
             sp_profile = SPProfile.objects.get(service_provider=service_provider)
@@ -690,19 +699,97 @@ def createServiceRequest(request):
                 total_price=total_price
             )
             service_request.subcategories.set(Subcategory.objects.filter(id__in=[sub['id'] for sub in subcategories_data]))
+            email_subject_to_pro = "New Service Request from Customer"
+            email_message_to_pro = f"""
+            Dear {service_provider.user.name},
+
+            You have a new service request in the "{category.name}" category.
+
+            Customer Details:
+            Name: {customer_name}
+            Zip Code: {customer_zip_code}
+            Address: {customer_address}
+            Phone Number: {customer_phone_number}
+            Email: {customer_email}
+
+            Your Base Price: ${base_price}
+            Services:
+            """
+            for detail in subcategories_details:
+                email_message_to_pro += f"\n- {detail['subcategory_name']}: {detail['quantity']} units, Total: ${detail['individual_total']}"
+
+            if extra_services:
+                email_message_to_pro += "\n\nExtra Services:\n"
+                for extra_service in extra_services:
+                    email_message_to_pro += f"- {extra_service}\n"
+
+            email_message_to_pro += f"\n\nGrand Total: ${total_price}\n\nPlease respond to this service request at your earliest convenience."
+
+            # Send email to service provider (PRO)
+            send_mail(
+                email_subject_to_pro,
+                email_message_to_pro,
+                'support@api.thefixit4u.com',  # From email (change as needed)
+                [service_provider.user.email],  # To email (service provider's email)
+                fail_silently=False,
+            )
+
+            # Prepare email content for customer
+            email_subject_to_customer = "Service Request Confirmation"
+            email_message_to_customer = f"""
+            Dear {customer_name},
+
+            Thank you for your service request! We've submitted it to the Service Provider. They will be in touch with you shortly.
+            Here are the PRO details:
+
+            Main Service: {category.name}
+            Company Name: {service_provider.company_name}
+            Service Provider: {service_provider.user.name}
+            Service Provider email: {service_provider.user.email}
+            Service Provider Phone: {service_provider.phone_number}
+
+            More Services:
+            """
+            for detail in subcategories_details:
+                email_message_to_customer += f"\n- {detail['subcategory_name']}: {detail['quantity']} units, Total: ${detail['individual_total']}"
+
+            if extra_services:
+                email_message_to_customer += "\n\nExtra Services:\n"
+                for extra_service in extra_services:
+                    email_message_to_customer += f"- {extra_service}\n"
+
+            email_message_to_customer += f"\n\nEstimated Total: ${total_price}\n\nWe will keep you updated on the progress of your request.\nFor  any questions or concerns, please reply to this email or call us at 1-800-123-4567."
+
+
+
+            # Send email to customer
+            send_mail(
+                email_subject_to_customer,
+                email_message_to_customer,
+                'support@api.thefixit4u.com',  # From email (change as needed)
+                [customer_email],  # To email (customer's email)
+                fail_silently=False,
+            )
             response_data = {
-                "message": "Service request created successfully!",
+                "message": "Service request created successfully! Emails sent to service provider and customer.",
                 "service_request": {
                     "id": service_request.id,
                     "service_provider_id": service_provider.id,
-                    # "include_services": sp_profile.services_included,
-                    "pro_name": service_provider.user.name,
-                    "company_name": service_provider.company_name,
+                    "service_provider_name": service_provider.user.name,
+                    "service_provider_id": service_provider.company_name,
                     "category_id": category.id,
-                    "category Name":category.name,
+                    "category_name": category.name,  # Category name
                     "base_price": base_price,
                     "subcategories": subcategories_details,
-                    "grand_total": total_price
+                    "extra_services": extra_services,  # Include extra services in the response
+                    "grand_total": total_price,
+                    "customer_details": {  # Include customer details in the response
+                        "name": customer_name,
+                        "zip_code": customer_zip_code,
+                        "address": customer_address,
+                        "phone_number": customer_phone_number,
+                        "email": customer_email
+                    }
                 }
             }
             return JsonResponse(good_response(request.method, response_data, status=201))
