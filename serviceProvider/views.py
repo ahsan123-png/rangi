@@ -695,7 +695,11 @@ def createServiceRequest(request):
                 "service_request": {
                     "id": service_request.id,
                     "service_provider_id": service_provider.id,
+                    # "include_services": sp_profile.services_included,
+                    "pro_name": service_provider.user.name,
+                    "company_name": service_provider.company_name,
                     "category_id": category.id,
+                    "category Name":category.name,
                     "base_price": base_price,
                     "subcategories": subcategories_details,
                     "grand_total": total_price
