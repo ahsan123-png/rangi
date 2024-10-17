@@ -10,6 +10,9 @@ from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponseRedirect
+from django.core.mail import send_mail
 # Create your views here.
 
 
@@ -504,6 +507,75 @@ def activate_user(request, uidb64, token) -> JsonResponse:
         return JsonResponse(
             {'error': 'Invalid activation link'}, status=400)
 
+# accept request and reject request of service
+@csrf_exempt
+def accept_request(request, request_id):
+    try:
+        service_request = get_object_or_404(ServiceRequest, id=request_id)
+        if service_request.customer is None or service_request.service_provider is None:
+            return JsonResponse({"error": "Customer or Service Provider is missing."}, status=400)
+        service_request.status = 'Accepted'
+        service_request.save()
+
+        # Send email to customer
+        customer_email = service_request.customer.user.email
+        customer_name = service_request.customer.user.name
+        service_provider_name = service_request.service_provider.user.name
+        email_subject = "Service Request Accepted"
+        email_message = f"""
+        Dear {customer_name},
+
+        Congratulations! Your service provider {service_provider_name} has accepted your request for the service: {service_request.category.name}.
+
+        Please contact your service provider for further details.
+
+        Regards,
+        TheFixIt4U Team
+        """
+        send_mail(
+            email_subject,
+            email_message,
+            'support@api.thefixit4u.com',
+            [customer_email],
+            fail_silently=False,
+        )
+        return JsonResponse({"message": "Request accepted and customer notified."})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+def reject_request(request, request_id):
+    try:
+        service_request = get_object_or_404(ServiceRequest, id=request_id)
+        service_request.status = 'Rejected'
+        service_request.save()
+
+        # Send email to customer
+        customer_email = service_request.customer.user.email
+        customer_name = service_request.customer.user.name
+        service_provider_name = service_request.service_provider.user.name
+        email_subject = "Service Request Rejected"
+        email_message = f"""
+        Dear {customer_name},
+
+        Unfortunately, your service provider {service_provider_name} is unavailable and has rejected your request for the service: {service_request.category.name}.
+
+        We apologize for the inconvenience.
+
+        Regards,
+        TheFixIt4U Team
+        """
+        send_mail(
+            email_subject,
+            email_message,
+            'support@api.thefixit4u.com',
+            [customer_email],
+            fail_silently=False,
+        )
+        return JsonResponse({"message": "Request rejected and customer notified."})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 

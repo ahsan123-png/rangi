@@ -20,5 +20,8 @@ urlpatterns = [
     path('contact_us/<int:contact_id>/',getContactById,name="getContactById"),
     # activation
     path('activate/<str:uidb64>/<str:token>/', activate_user, name='activate_user'),
+    # accept request and reject request of a service
+    path('service-request/<int:request_id>/accept/', accept_request, name='accept_request'),
+    path('service-request/<int:request_id>/reject/', reject_request, name='reject_request'),
     
 ]

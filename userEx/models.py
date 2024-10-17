@@ -64,13 +64,8 @@ class SPProfile(models.Model):
     services_included = models.ManyToManyField(Subcategory)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
 
-# ============= Service Requests =============
-class ServiceRequest(models.Model):
-    service_provider = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    subcategories = models.ManyToManyField(Subcategory)  # Extra services selected by customer
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    request_timestamp = models.DateTimeField(auto_now_add=True)
+
+    
 # Employee model (works under a category and subcategory)
 class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)  # Links to the default Django User model
@@ -123,3 +118,17 @@ class ContactUs(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.subject}"
+# ============= Service Requests =============
+class ServiceRequest(models.Model):
+    STATUS_CHOICES = [
+    ('Pending', 'Pending'),
+    ('Accepted', 'Accepted'),
+    ('Rejected', 'Rejected'),
+]
+    service_provider = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    subcategories = models.ManyToManyField(Subcategory)  # Extra services selected by customer
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    request_timestamp = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='Pending')
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, null=True, blank=True)
