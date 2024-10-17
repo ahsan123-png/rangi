@@ -653,16 +653,12 @@ def createServiceRequest(request):
         try:
             data = get_request_body(request)
             service_provider_id = data.get('service_provider_id')
+            customer_id=data.get('customer_id')
             category_id = data.get('category_id')
-            subcategories_data = data.get('subcategories', [])
-            customer_details = data.get('customer_details', {})  
+            subcategories_data = data.get('subcategories', [])  
             extra_services = data.get('extra_services', [])  
-            customer_name = customer_details.get('name')
-            customer_zip_code = customer_details.get('zip_code')
-            customer_address = customer_details.get('address')
-            customer_phone_number = customer_details.get('phone_number')
-            customer_email = customer_details.get('email')
             service_provider = ServiceProvider.objects.get(id=service_provider_id)
+            customer = Customer.objects.get(id=customer_id)
             category = Category.objects.get(id=category_id)
             sp_profile = SPProfile.objects.get(service_provider=service_provider)
             base_price = float(sp_profile.base_price)
@@ -696,6 +692,7 @@ def createServiceRequest(request):
                 })
             service_request = ServiceRequest.objects.create(
                 service_provider=service_provider,
+                customer=customer,
                 category=category,
                 total_price=total_price
             )
@@ -709,11 +706,11 @@ def createServiceRequest(request):
             You have a new service request in the "{category.name}" category.
 
             Customer Details:
-            Name: {customer_name}
-            Zip Code: {customer_zip_code}
-            Address: {customer_address}
-            Phone Number: {customer_phone_number}
-            Email: {customer_email}
+            Name: {customer.user.name}
+            Zip Code: {customer.user.zipCode}
+            Address: {customer.user.address}
+            Phone Number: {customer.phone_number}
+            Email: {customer.user.email}
 
             Your Base Price: ${base_price}
             Services:
@@ -747,7 +744,7 @@ def createServiceRequest(request):
             # Prepare email content for customer
             email_subject_to_customer = "Service Request Confirmation"
             email_message_to_customer = f"""
-            Dear {customer_name},
+            Dear {customer.user.name},
 
             Thank you for your service request! We've submitted it to the Service Provider. They will be in touch with you shortly.
             Here are the PRO details:
@@ -777,7 +774,7 @@ def createServiceRequest(request):
                 email_subject_to_customer,
                 email_message_to_customer,
                 'support@api.thefixit4u.com',  # From email (change as needed)
-                [customer_email],  # To email (customer's email)
+                [customer.user.email],  # To email (customer's email)
                 fail_silently=False,
             )
             response_data = {
@@ -794,11 +791,11 @@ def createServiceRequest(request):
                     "extra_services": extra_services,  # Include extra services in the response
                     "grand_total": total_price,
                     "customer_details": {  # Include customer details in the response
-                        "name": customer_name,
-                        "zip_code": customer_zip_code,
-                        "address": customer_address,
-                        "phone_number": customer_phone_number,
-                        "email": customer_email
+                        "name": customer.user.name,
+                        "zip_code": customer.user.zipCode,
+                        "address": customer.user.address,
+                        "phone_number": customer.phone_number,
+                        "email": customer.user.email
                     }
                 }
             }
