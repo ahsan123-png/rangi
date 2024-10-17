@@ -66,11 +66,17 @@ class SPProfile(models.Model):
 
 # ============= Service Requests =============
 class ServiceRequest(models.Model):
+    STATUS_CHOICES = [
+    ('Pending', 'Pending'),
+    ('Accepted', 'Accepted'),
+    ('Rejected', 'Rejected'),
+]
     service_provider = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     subcategories = models.ManyToManyField(Subcategory)  # Extra services selected by customer
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     request_timestamp = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='Pending')
 # Employee model (works under a category and subcategory)
 class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)  # Links to the default Django User model

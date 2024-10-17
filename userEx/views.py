@@ -10,6 +10,9 @@ from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponseRedirect
+from django.core.mail import send_mail
 # Create your views here.
 
 
@@ -504,7 +507,66 @@ def activate_user(request, uidb64, token) -> JsonResponse:
         return JsonResponse(
             {'error': 'Invalid activation link'}, status=400)
 
+# accept request and reject request of service
+@csrf_exempt
+def accept_request(request, request_id):
+    service_request = get_object_or_404(ServiceRequest, id=request_id)
+    service_request.status = 'Accepted'
+    service_request.save()
 
+    # Send an email to the customer
+    customer_email = service_request.customer.email  # Assuming customer is a ForeignKey in ServiceRequest
+    email_subject = "Service Request Accepted"
+    email_message = f"""
+    Dear {service_request.customer.name},
+
+    Congratulations! Your service provider has accepted your request for the service: {service_request.category.name}.
+
+    Please contact your service provider for further details.
+
+    Regards,
+    TheFixIt4U Team
+    """
+
+    send_mail(
+        email_subject,
+        email_message,
+        'support@api.thefixit4u.com',
+        [customer_email],
+        fail_silently=False,
+    )
+
+    return JsonResponse({"message": "Request accepted and customer notified."})
+
+@csrf_exempt
+def reject_request(request, request_id):
+    service_request = get_object_or_404(ServiceRequest, id=request_id)
+    service_request.status = 'Rejected'
+    service_request.save()
+
+    # Send an email to the customer
+    customer_email = service_request.customer.email
+    email_subject = "Service Request Rejected"
+    email_message = f"""
+    Dear {service_request.customer.name},
+
+    Unfortunately, your service provider is unavailable at the moment and has rejected your request for the service: {service_request.category.name}.
+
+    We apologize for the inconvenience.
+
+    Regards,
+    TheFixIt4U Team
+    """
+
+    send_mail(
+        email_subject,
+        email_message,
+        'support@api.thefixit4u.com',
+        [customer_email],
+        fail_silently=False,
+    )
+
+    return JsonResponse({"message": "Request rejected and customer notified."})
 
 
 

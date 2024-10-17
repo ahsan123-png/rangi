@@ -5,6 +5,7 @@ from .models import *
 from userEx.views import *
 from userEx.models import *
 from userEx.serializers import *
+from django.urls import reverse
 from datetime import datetime
 from django.db.models import Avg
 from django.conf import settings
@@ -700,6 +701,8 @@ def createServiceRequest(request):
             )
             service_request.subcategories.set(Subcategory.objects.filter(id__in=[sub['id'] for sub in subcategories_data]))
             email_subject_to_pro = "New Service Request from Customer"
+            accept_link = request.build_absolute_uri(reverse('accept_request', args=[service_request.id]))
+            reject_link = request.build_absolute_uri(reverse('reject_request', args=[service_request.id]))  
             email_message_to_pro = f"""
             Dear {service_provider.user.name},
 
@@ -724,7 +727,14 @@ def createServiceRequest(request):
                     email_message_to_pro += f"- {extra_service}\n"
 
             email_message_to_pro += f"\n\nGrand Total: ${total_price}\n\nPlease respond to this service request at your earliest convenience."
+            email_message_to_pro += f"""
 
+            Grand Total: ${total_price}
+
+            Please choose one of the following options:
+            Accept the request: {accept_link}
+            Reject the request: {reject_link}
+            """
             # Send email to service provider (PRO)
             send_mail(
                 email_subject_to_pro,
