@@ -684,6 +684,9 @@ def createServiceRequest(request):
                 if subcategory.id not in included_services_ids:
                     total_price += individual_total
                     additional_services.append(subcategory.name)
+                else:
+                    if quantity > 1:
+                        total_price += individual_total
                 subcategories_details.append({
                     "subcategory_name": subcategory.name,
                     "quantity": quantity,
@@ -787,8 +790,8 @@ def createServiceRequest(request):
                     "category_id": category.id,
                     "category_name": category.name,  # Category name
                     "base_price": base_price,
-                    "subcategories": subcategories_details,
-                    "extra_services": extra_services,  # Include extra services in the response
+                    "extra_services": subcategories_details,
+                    # "extra_services": extra_services,  # Include extra services in the response
                     "grand_total": total_price,
                     "customer_details": {  # Include customer details in the response
                         "name": customer.user.name,
