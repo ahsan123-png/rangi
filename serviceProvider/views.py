@@ -21,6 +21,7 @@ from django.middleware.csrf import get_token
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
+from django.template.loader import render_to_string
 # Create your views here.
 @csrf_exempt
 def registerServiceProvider(request) -> JsonResponse:
@@ -701,77 +702,45 @@ def createServiceRequest(request):
             )
             service_request.subcategories.set(Subcategory.objects.filter(id__in=[sub['id'] for sub in subcategories_data]))
             email_subject_to_pro = "New Service Request from Customer"
+            email_subject_to_customer = "Service Request Confirmation"
             accept_link = request.build_absolute_uri(reverse('accept_request', args=[service_request.id]))
             reject_link = request.build_absolute_uri(reverse('reject_request', args=[service_request.id]))  
-            email_message_to_pro = f"""
-            Dear {service_provider.user.name},
-
-            You have a new service request in the "{category.name}" category.
-
-            Customer Details:
-            Name: {customer.user.name}
-            Zip Code: {customer.user.zipCode}
-            Address: {customer.user.address}
-            Phone Number: {customer.phone_number}
-            Email: {customer.user.email}
-
-            Your Base Price: ${base_price}
-            Services:
-            """
-            for detail in subcategories_details:
-                email_message_to_pro += f"\n- {detail['subcategory_name']}: {detail['quantity']} units, Total: ${detail['individual_total']}"
-
-            if extra_services:
-                email_message_to_pro += "\n\nExtra Services:\n"
-                for extra_service in extra_services:
-                    email_message_to_pro += f"- {extra_service}\n"
-
-            email_message_to_pro += f"\n\nGrand Total: ${total_price}\n\nPlease respond to this service request at your earliest convenience."
-            email_message_to_pro += f"""
-
-            Grand Total: ${total_price}
-
-            Please choose one of the following options:
-            Accept the request: {accept_link}
-            Reject the request: {reject_link}
-            """
-            # Send email to service provider (PRO)
+            email_message_to_pro = render_to_string('emails/service_provider_email.html', {
+            'service_provider_name': service_provider.user.name,
+            'category_name': category.name,
+            'customer_name': customer.user.name,
+            'customer_zip_code': customer.user.zipCode,
+            'customer_address': customer.user.address,
+            'customer_phone_number': customer.phone_number,
+            'customer_email': customer.user.email,
+            'base_price': base_price,
+            'subcategories_details': subcategories_details,
+            'extra_services': extra_services,
+            'total_price': total_price,
+            'accept_link': accept_link,
+            'reject_link': reject_link
+        })
+# Send email to service provider (PRO)
             send_mail(
                 email_subject_to_pro,
                 email_message_to_pro,
                 'support@api.thefixit4u.com',  # From email (change as needed)
                 [service_provider.user.email],  # To email (service provider's email)
                 fail_silently=False,
+                html_message=email_message_to_pro
             )
-
             # Prepare email content for customer
-            email_subject_to_customer = "Service Request Confirmation"
-            email_message_to_customer = f"""
-            Dear {customer.user.name},
-
-            Thank you for your service request! We've submitted it to the Service Provider. They will be in touch with you shortly.
-            Here are the PRO details:
-
-            Main Service: {category.name}
-            Company Name: {service_provider.company_name}
-            Service Provider: {service_provider.user.name}
-            Service Provider email: {service_provider.user.email}
-            Service Provider Phone: {service_provider.phone_number}
-
-            More Services:
-            """
-            for detail in subcategories_details:
-                email_message_to_customer += f"\n- {detail['subcategory_name']}: {detail['quantity']} units, Total: ${detail['individual_total']}"
-
-            if extra_services:
-                email_message_to_customer += "\n\nExtra Services:\n"
-                for extra_service in extra_services:
-                    email_message_to_customer += f"- {extra_service}\n"
-
-            email_message_to_customer += f"\n\nEstimated Total: ${total_price}\n\nWe will keep you updated on the progress of your request.\nFor  any questions or concerns, please reply to this email or call us at 1-800-123-4567."
-
-
-
+            email_message_to_customer = render_to_string('emails/customer_confirmation_email.html', {
+            'customer_name': customer.user.name,
+            'category_name': category.name,
+            'service_provider_company_name': service_provider.company_name,
+            'service_provider_name': service_provider.user.name,
+            'service_provider_email': service_provider.user.email,
+            'service_provider_phone_number': service_provider.phone_number,
+            'subcategories_details': subcategories_details,
+            'extra_services': extra_services,
+            'total_price': total_price,
+        })
             # Send email to customer
             send_mail(
                 email_subject_to_customer,
@@ -779,6 +748,7 @@ def createServiceRequest(request):
                 'support@api.thefixit4u.com',  # From email (change as needed)
                 [customer.user.email],  # To email (customer's email)
                 fail_silently=False,
+                html_message=email_message_to_customer
             )
             response_data = {
                 "message": "Service request created successfully! Emails sent to service provider and customer.",

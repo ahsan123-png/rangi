@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Request Confirmation</title>
+</head>
+<body>
+    <p>Dear {{ customer_name }},</p>
+
+    <p>Thank you for your service request! We've submitted it to the Service Provider. They will be in touch with you shortly.</p>
+
+    <p><strong>Here are the PRO details:</strong></p>
+
+    <ul>
+        <li><strong>Main Service:</strong> {{ category_name }}</li>
+        <li><strong>Company Name:</strong> {{ service_provider_company_name }}</li>
+        <li><strong>Service Provider:</strong> {{ service_provider_name }}</li>
+        <li><strong>Service Provider Email:</strong> {{ service_provider_email }}</li>
+        <li><strong>Service Provider Phone:</strong> {{ service_provider_phone_number }}</li>
+    </ul>
+
+    <p>Services:</p>
+    <ul>
+        {% for service in subcategories_details %}
+            <li>{{ service.subcategory_name }}: {{ service.quantity }} units, Total: ${{ service.individual_total }}</li>
+        {% endfor %}
+    </ul>
+
+    {% if extra_services %}
+        <p><strong>Extra Services:</strong></p>
+        <ul>
+            {% for extra_service in extra_services %}
+                <li>{{ extra_service }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <p><strong>Estimated Total:</strong> ${{ total_price }}</p>
+
+    <p>We will keep you updated on the progress of your request. For any questions or concerns, please reply to this email or call us at 1-800-123-4567.</p>
+
+</body>
+</html>
