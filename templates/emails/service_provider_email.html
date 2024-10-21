@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Service Request</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Lato', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+        }
+
+        .container {
+            background-color: #fee3d0;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            color: #333131;
+        }
+
+        .header {
+            background-color: #f08422;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .content h2 {
+            color: #333;
+            font-size: 20px;
+            border-bottom: 1px solid #f08422;
+            padding-bottom: 5px;
+            margin-bottom: 20px;
+        }
+
+        .content p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+
+        .content ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .content ul li {
+            font-size: 16px;
+            padding: 5px 0;
+        }
+
+        .content ul li strong {
+            color: #f08422;
+        }
+
+        .buttons {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .button {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            color: white !important;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 10px 15px;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: none;
+        }
+
+        .btn-accept {
+            background-color: #28a745 !important;
+        }
+
+        .btn-reject {
+            background-color: #dc3545 !important;
+        }
+
+        .button:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-accept:hover {
+            background-color: #218838 !important;
+        }
+
+        .btn-reject:hover {
+            background-color: #c82333 !important;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            color: #999;
+            border-top: 1px solid #ddd;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>New Service Request from Customer</h1>
+        </div>
+        <div class="content">
+            <p>Dear <strong>{{ service_provider_name }}</strong>,</p>
+            <p>You have received a new service request in the <strong>"{{ category_name }}"</strong> category.</p>
+
+            <h2>Customer Details</h2>
+            <ul>
+                <li><strong>Name:</strong> {{ customer_name }}</li>
+                <li><strong>Zip Code:</strong> {{ customer_zip_code }}</li>
+                <li><strong>Address:</strong> {{ customer_address }}</li>
+                <li><strong>Phone Number:</strong> {{ customer_phone_number }}</li>
+                <li><strong>Email:</strong> {{ customer_email }}</li>
+            </ul>
+
+            <h2>Service Details</h2>
+            <p><strong>Your Base Price:</strong> ${{ base_price }}</p>
+            <ul>
+                {% for service in subcategories_details %}
+                <li>{{ service.subcategory_name }}: {{ service.quantity }} units, Total: ${{ service.individual_total }}
+                </li>
+                {% endfor %}
+            </ul>
+            {% if extra_services %}
+            <p><strong>Extra Services:</strong></p>
+            <ul>
+                {% for extra_service in extra_services %}
+                <li>{{ extra_service }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <p><strong>Grand Total:</strong> ${{ total_price }}</p>
+
+            <p>Please choose one of the following options:</p>
+            <div class="buttons">
+                <a href="{{ accept_link }}" class="button btn-accept">Accept Request</a>
+                <a href="{{ reject_link }}" class="button btn-reject">Reject Request</a>
+            </div>
+        </div>
+        <div class="footer">
+            <p>Thank you for using our service!</p>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            // Handle Accept Request button click
+            $('.btn-accept').click(function (e) {
+                e.preventDefault();  // Prevent default anchor behavior
+                var acceptLink = $(this).attr('href');  // Get the URL from the href attribute
+    
+                $.ajax({
+                    url: acceptLink,
+                    type: 'GET',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' },  // Include CSRF token for security
+                    success: function () {
+                        alert('Request accepted successfully!');  // Show success message
+                    },
+                    error: function () {
+                        alert('Error: Could not accept the request.');  // Show error message
+                    }
+                });
+            });
+    
+            // Handle Reject Request button click
+            $('.btn-reject').click(function (e) {
+                e.preventDefault();  // Prevent default anchor behavior
+                var rejectLink = $(this).attr('href');  // Get the URL from the href attribute
+    
+                $.ajax({
+                    url: rejectLink,
+                    type: 'GET',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' },  // Include CSRF token for security
+                    success: function () {
+                        alert('Request rejected successfully!');  // Show success message
+                    },
+                    error: function () {
+                        alert('Error: Could not reject the request.');  // Show error message
+                    }
+                });
+            });
+        });
+    </script>
+    
+</body>
+
+</html>

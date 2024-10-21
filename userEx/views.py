@@ -2,7 +2,7 @@ import json
 from .models import *
 from typing import Any
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
 from django.core.exceptions import ObjectDoesNotExist
@@ -510,72 +510,76 @@ def activate_user(request, uidb64, token) -> JsonResponse:
 # accept request and reject request of service
 @csrf_exempt
 def accept_request(request, request_id):
-    try:
-        service_request = get_object_or_404(ServiceRequest, id=request_id)
-        if service_request.customer is None or service_request.service_provider is None:
-            return JsonResponse({"error": "Customer or Service Provider is missing."}, status=400)
-        service_request.status = 'Accepted'
-        service_request.save()
+    if request.method  == 'GET':
+        try:
+            service_request = get_object_or_404(ServiceRequest, id=request_id)
+            if service_request.customer is None or service_request.service_provider is None:
+                return JsonResponse({"error": "Customer or Service Provider is missing."}, status=400)
+            service_request.status = 'Accepted'
+            service_request.save()
 
-        # Send email to customer
-        customer_email = service_request.customer.user.email
-        customer_name = service_request.customer.user.name
-        service_provider_name = service_request.service_provider.user.name
-        email_subject = "Service Request Accepted"
-        email_message = f"""
-        Dear {customer_name},
+            # Send email to customer
+            customer_email = service_request.customer.user.email
+            customer_name = service_request.customer.user.name
+            service_provider_name = service_request.service_provider.user.name
+            email_subject = "Service Request Accepted"
+            email_message = f"""
+            Dear {customer_name},
 
-        Congratulations! Your service provider {service_provider_name} has accepted your request for the service: {service_request.category.name}.
+            Congratulations! Your service provider {service_provider_name} has accepted your request for the service: {service_request.category.name}.
 
-        Please contact your service provider for further details.
+            Please contact your service provider for further details.
 
-        Regards,
-        TheFixIt4U Team
-        """
-        send_mail(
-            email_subject,
-            email_message,
-            'support@api.thefixit4u.com',
-            [customer_email],
-            fail_silently=False,
-        )
-        return JsonResponse({"message": "Request accepted and customer notified."})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-
-
+            Regards,
+            TheFixIt4U Team
+            """
+            send_mail(
+                email_subject,
+                email_message,
+                'support@api.thefixit4u.com',
+                [customer_email],
+                fail_silently=False,
+            )
+            return HttpResponse(status=200)  # Success
+        except Exception as e:
+                return HttpResponse(status=500)  # Internal server error
+    else:
+        return HttpResponse(status=405)  # Method not allowed
 @csrf_exempt
 def reject_request(request, request_id):
-    try:
-        service_request = get_object_or_404(ServiceRequest, id=request_id)
-        service_request.status = 'Rejected'
-        service_request.save()
+    if request.method == "GET":
+        try:
+            service_request = get_object_or_404(ServiceRequest, id=request_id)
+            service_request.status = 'Rejected'
+            service_request.save()
 
-        # Send email to customer
-        customer_email = service_request.customer.user.email
-        customer_name = service_request.customer.user.name
-        service_provider_name = service_request.service_provider.user.name
-        email_subject = "Service Request Rejected"
-        email_message = f"""
-        Dear {customer_name},
+            # Send email to customer
+            customer_email = service_request.customer.user.email
+            customer_name = service_request.customer.user.name
+            service_provider_name = service_request.service_provider.user.name
+            email_subject = "Service Request Rejected"
+            email_message = f"""
+            Dear {customer_name},
 
-        Unfortunately, your service provider {service_provider_name} is unavailable and has rejected your request for the service: {service_request.category.name}.
+            Unfortunately, your service provider {service_provider_name} is unavailable and has rejected your request for the service: {service_request.category.name}.
 
-        We apologize for the inconvenience.
+            We apologize for the inconvenience.
 
-        Regards,
-        TheFixIt4U Team
-        """
-        send_mail(
-            email_subject,
-            email_message,
-            'support@api.thefixit4u.com',
-            [customer_email],
-            fail_silently=False,
-        )
-        return JsonResponse({"message": "Request rejected and customer notified."})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+            Regards,
+            TheFixIt4U Team
+            """
+            send_mail(
+                email_subject,
+                email_message,
+                'support@api.thefixit4u.com',
+                [customer_email],
+                fail_silently=False,
+            )
+            return HttpResponse(status=200)  # Success
+        except Exception as e:
+            return HttpResponse(status=500)  # Internal server error
+    else:
+        return HttpResponse(status=405)  # Method not allowed
 
 
 
