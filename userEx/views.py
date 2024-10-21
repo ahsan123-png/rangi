@@ -2,7 +2,7 @@ import json
 from .models import *
 from typing import Any
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
 from django.core.exceptions import ObjectDoesNotExist
@@ -510,7 +510,7 @@ def activate_user(request, uidb64, token) -> JsonResponse:
 # accept request and reject request of service
 @csrf_exempt
 def accept_request(request, request_id):
-    if request.method == "GET":
+    if request.method  == 'GET':
         try:
             service_request = get_object_or_404(ServiceRequest, id=request_id)
             if service_request.customer is None or service_request.service_provider is None:
@@ -540,12 +540,11 @@ def accept_request(request, request_id):
                 [customer_email],
                 fail_silently=False,
             )
-            return JsonResponse({"message": "Request accepted and customer notified."})
+            return HttpResponse(status=200)  # Success
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+                return HttpResponse(status=500)  # Internal server error
     else:
-        return JsonResponse({"error": "Invalid request method"}, status=400)
-
+        return HttpResponse(status=405)  # Method not allowed
 @csrf_exempt
 def reject_request(request, request_id):
     if request.method == "GET":
@@ -576,11 +575,11 @@ def reject_request(request, request_id):
                 [customer_email],
                 fail_silently=False,
             )
-            return JsonResponse({"message": "Request rejected and customer notified."})
+            return HttpResponse(status=200)  # Success
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            return HttpResponse(status=500)  # Internal server error
     else:
-        return  JsonResponse({"error": "Invalid request method"}, status=400)
+        return HttpResponse(status=405)  # Method not allowed
 
 
 

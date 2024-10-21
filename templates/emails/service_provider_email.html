@@ -181,43 +181,40 @@
             $('.btn-accept').click(function (e) {
                 e.preventDefault();  // Prevent default anchor behavior
                 var acceptLink = $(this).attr('href');  // Get the URL from the href attribute
-
+    
                 $.ajax({
                     url: acceptLink,
                     type: 'GET',
                     headers: { 'X-CSRFToken': '{{ csrf_token }}' },  // Include CSRF token for security
-                    success: function (response) {
+                    success: function () {
                         alert('Request accepted successfully!');  // Show success message
-                        // Optionally update the UI or redirect the user
-                        // location.reload(); // Reload the page if necessary
                     },
-                    error: function (response) {
+                    error: function () {
                         alert('Error: Could not accept the request.');  // Show error message
                     }
                 });
             });
-
+    
             // Handle Reject Request button click
             $('.btn-reject').click(function (e) {
                 e.preventDefault();  // Prevent default anchor behavior
                 var rejectLink = $(this).attr('href');  // Get the URL from the href attribute
-
+    
                 $.ajax({
                     url: rejectLink,
                     type: 'GET',
                     headers: { 'X-CSRFToken': '{{ csrf_token }}' },  // Include CSRF token for security
-                    success: function (response) {
+                    success: function () {
                         alert('Request rejected successfully!');  // Show success message
-                        // Optionally update the UI or redirect the user
-                        // location.reload(); // Reload the page if necessary
                     },
-                    error: function (response) {
+                    error: function () {
                         alert('Error: Could not reject the request.');  // Show error message
                     }
                 });
             });
         });
     </script>
+    
 </body>
 
 </html>
