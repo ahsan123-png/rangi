@@ -1,21 +1,4 @@
-import os
-import re
-from userEx.models import *
-from userEx.serializers import *
-from userEx.views import *
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ObjectDoesNotExist
-from django.db import IntegrityError
-from django.db.models import Q
-from django.utils.text import slugify
-from django.core.files.storage import default_storage
-from django.middleware.csrf import get_token
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.contrib.auth.tokens import default_token_generator
-from django.conf import settings
-from django.core.mail import send_mail
+from userEx.customImports import *
 # Create your views here.
 
 @csrf_exempt

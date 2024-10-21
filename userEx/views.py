@@ -1,5 +1,8 @@
+from .customImports import *
 import json
 from .models import *
+from .serializers import *
+from .views import *
 from typing import Any
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
@@ -14,8 +17,6 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
 from django.core.mail import send_mail
 # Create your views here.
-
-
 #=============== Add categories and sub-categories =============================
 @csrf_exempt
 def addCategory(request):
