@@ -123,10 +123,6 @@ class SubscriptionPlan(models.Model):
         ('customer', 'Customer'),
         ('service_provider', 'Service Provider'),
     ]
-    DURATION_CHOICES = [
-        ('monthly', 'Monthly'),
-        ('yearly', 'Yearly'),
-    ]
     PLAN_TIER_CHOICES = [
         ('basic', 'Basic'),
         ('normal', 'Normal'),
@@ -136,7 +132,7 @@ class SubscriptionPlan(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     plan_type = models.CharField(max_length=20, choices=PLAN_TYPE_CHOICES)  # 'Customer' or 'Service Provider'
-    duration = models.CharField(max_length=10, choices=DURATION_CHOICES)    # Monthly or yearly
+    duration = models.CharField(max_length=10, default="monthly")    # Monthly or yearly
     tier = models.CharField(max_length=10, choices=PLAN_TIER_CHOICES)       # Basic, Normal, Premium
     def __str__(self):
         return f"{self.name} - {self.tier} ({self.plan_type})"

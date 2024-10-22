@@ -1,4 +1,6 @@
 import json
+import os
+import re
 from userEx.views import *
 from userEx.models import *
 from userEx.serializers import *
@@ -224,7 +226,8 @@ def loginView(request):
 def getAllServiceProviders(request) -> JsonResponse:
     if request.method == 'GET':
         # Fetch all service providers with related user, category, and SPProfile in one optimized query
-        service_providers = ServiceProvider.objects.select_related('user', 'category')\
+        service_providers = ServiceProvider.objects\
+            .select_related('user', 'category')\
                                                    .prefetch_related('spprofile')\
                                                    .annotate(average_rating=Avg('reviews__rating'))\
                                                    .all()
@@ -955,6 +958,3 @@ def updateSpProfilePicture(request, service_provider_id):
             status=405
         )
     )
-
-    
-

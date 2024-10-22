@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     'serviceProvider',
     'adminsView',
     'userEx',
+    'payments',
     'corsheaders',
     'django.contrib.sites',
     'allauth',
