@@ -23,6 +23,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.db import IntegrityError
+from django.core.mail import send_mail
 # Create your views here.
 @csrf_exempt
 def registerServiceProvider(request) -> JsonResponse:
@@ -648,8 +649,6 @@ def createSpProfile(request,service_provider_id):
         )
     )
 #================ Service Request =============================
-from django.core.mail import send_mail
-
 @csrf_exempt
 def createServiceRequest(request):
     if request.method == 'POST':
