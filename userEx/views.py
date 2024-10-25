@@ -545,6 +545,7 @@ def accept_request(request, request_id):
                 return HttpResponse(status=500)  # Internal server error
     else:
         return HttpResponse(status=405)  # Method not allowed
+# === reject request ===
 @csrf_exempt
 def reject_request(request, request_id):
     if request.method == "GET":
@@ -552,7 +553,6 @@ def reject_request(request, request_id):
             service_request = get_object_or_404(ServiceRequest, id=request_id)
             service_request.status = 'Rejected'
             service_request.save()
-
             # Send email to customer
             customer_email = service_request.customer.user.email
             customer_name = service_request.customer.user.name
@@ -580,6 +580,49 @@ def reject_request(request, request_id):
             return HttpResponse(status=500)  # Internal server error
     else:
         return HttpResponse(status=405)  # Method not allowed
+
+# ====================== get all service provider by category id  ============
+def getServiceProvidersByCategory(request, category_id):
+    if request.method == "GET":
+        try:
+            category = Category.objects.get(id=category_id)
+        except Category.DoesNotExist:
+            return JsonResponse({'error': 'Category not found'}, status=404)
+        service_providers = ServiceProvider.objects.filter(category=category).select_related('user')
+        provider_list = []
+        for provider in service_providers:
+            try:
+                profile = SPProfile.objects.get(service_provider=provider)
+                profile_data = {
+                    'base_price': str(profile.base_price),
+                    'introduction': profile.introduction,
+                    'company_founded_date': profile.company_founded_date,
+                    'payment_methods': profile.payment_methods,
+                    'services_included': [subcategory.name for subcategory in profile.services_included.all()],
+                    'profile_picture': profile.profile_picture.url if profile.profile_picture else None
+                }
+            except SPProfile.DoesNotExist:
+                profile_data = {}
+            provider_data = {
+                'id': provider.id,
+                'user_id': provider.user.id,
+                'username': provider.user.username,
+                'company_name': provider.company_name,
+                'phone_number': provider.phone_number,
+                'number_of_people': provider.number_of_people,
+                'status': provider.status,
+                'category_name': provider.category.name,
+                'profile': profile_data
+            }
+            provider_list.append(provider_data)
+        return JsonResponse({
+            'category': category.name,
+            'total_providers': len(provider_list),
+            'service_providers': provider_list
+        }, status=200)
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
 
 
 
