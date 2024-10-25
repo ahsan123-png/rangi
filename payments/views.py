@@ -1,13 +1,12 @@
-from django.shortcuts import render
-import json
-import os
-import re
 from userEx.views import *
 from userEx.models import *
 from userEx.serializers import *
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
+import stripe
+from django.conf import settings
+stripe.api_key = settings.STRIPE_SECRET_KEY
 #============== view =====================
 @csrf_exempt
 def addSubscriptionPlan(request):
@@ -49,6 +48,14 @@ def addSubscriptionPlan(request):
             return JsonResponse({"error": "Either customer_id or pro_id is required."}, status=400)
         if UserSubscription.objects.filter(user=user, plan=plan).exists():
             return JsonResponse({"error": "User is already subscribed to this plan."}, status=400)
+        try:
+            payment_intent = stripe.PaymentIntent.create(
+                amount=int(price * 100),  # Stripe expects amount in cents
+                currency="usd",  # Adjust the currency based on your app
+                metadata={"user_id": user.id, "plan_id": plan_id, "duration": duration}
+            )
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
         start_date = timezone.now()
         if duration == 'monthly':
             end_date = start_date + timedelta(days=30)
@@ -61,6 +68,8 @@ def addSubscriptionPlan(request):
             end_date=end_date
         )
         user_subscription.save()
+        user.is_subscribed=True
+        user.save()
         return JsonResponse({
             "message": "Subscription added successfully.",
             "user_id": user.id,
@@ -69,7 +78,8 @@ def addSubscriptionPlan(request):
             "duration": duration,
             "price": price,
             "start_date": start_date,
-            "end_date": end_date
+            "end_date": end_date,
+            "payment_intent_id": payment_intent.id
         }, status=201)
     else:
         return JsonResponse({"error": "Invalid request method"}, status=405)
