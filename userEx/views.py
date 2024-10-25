@@ -2,8 +2,9 @@ import json
 from .models import *
 from .serializers import *
 from .views import *
+from django.db.models import Avg
+from django.db.models import Prefetch
 from typing import Any
-from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
@@ -13,7 +14,6 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponseRedirect
 from django.core.mail import send_mail
 # Create your views here.
 #=============== Add categories and sub-categories =============================
@@ -582,47 +582,53 @@ def reject_request(request, request_id):
         return HttpResponse(status=405)  # Method not allowed
 
 # ====================== get all service provider by category id  ============
+@csrf_exempt
 def getServiceProvidersByCategory(request, category_id):
     if request.method == "GET":
         try:
             category = Category.objects.get(id=category_id)
         except Category.DoesNotExist:
             return JsonResponse({'error': 'Category not found'}, status=404)
-        service_providers = ServiceProvider.objects.filter(category=category).select_related('user')
-        provider_list = []
-        for provider in service_providers:
-            try:
-                profile = SPProfile.objects.get(service_provider=provider)
-                profile_data = {
-                    'base_price': str(profile.base_price),
-                    'introduction': profile.introduction,
-                    'company_founded_date': profile.company_founded_date,
-                    'payment_methods': profile.payment_methods,
-                    'services_included': [subcategory.name for subcategory in profile.services_included.all()],
-                    'profile_picture': profile.profile_picture.url if profile.profile_picture else None
-                }
-            except SPProfile.DoesNotExist:
-                profile_data = {}
-            provider_data = {
-                'id': provider.id,
-                'user_id': provider.user.id,
-                'username': provider.user.username,
-                'company_name': provider.company_name,
-                'phone_number': provider.phone_number,
-                'number_of_people': provider.number_of_people,
-                'status': provider.status,
-                'category_name': provider.category.name,
-                'profile': profile_data
-            }
-            provider_list.append(provider_data)
+        service_providers = (
+            ServiceProvider.objects
+            .filter(category=category)
+            .select_related('user', 'category', 'subcategory')
+            .prefetch_related(
+                Prefetch('spprofile'),
+                Prefetch('reviews')
+            )
+            .annotate(average_rating=Avg('reviews__rating'))
+        )
+        if not service_providers.exists():
+            return JsonResponse({
+                "success": False,
+                "message": "No service providers found for the given filters."
+            }, status=404)
+        result = []
+        for sp in service_providers:
+            sp_profile = getattr(sp, 'spprofile', None)
+            base_price = float(sp_profile.base_price) if sp_profile else 0.0
+            profile_picture_url = sp_profile.profile_picture.url if sp_profile and sp_profile.profile_picture else None
+            result.append({
+                "service_provider_id": sp.id,
+                "username": sp.user.username,
+                "company_name": sp.company_name,
+                "phone_number": sp.phone_number,
+                "category": sp.category.name,
+                "subcategory": sp.subcategory.name,
+                "zip_code": sp.user.zipCode,
+                "status": sp.status,
+                "number_of_people": sp.number_of_people,
+                "average_rating": sp.average_rating if sp.average_rating is not None else 0.0,
+                "base_price": base_price,
+                "profile_picture": profile_picture_url
+            })
         return JsonResponse({
-            'category': category.name,
-            'total_providers': len(provider_list),
-            'service_providers': provider_list
+            "success": True,
+            "service_providers": result
         }, status=200)
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
-
 
 
 
