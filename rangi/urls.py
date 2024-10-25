@@ -8,6 +8,7 @@ urlpatterns = [
     path('service_provider/', include("serviceProvider.urls")),
     path('', include("userEx.urls")),
     path('accounts/', include('allauth.urls')),
+    path('payments/', include('payments.urls')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

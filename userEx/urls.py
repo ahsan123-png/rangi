@@ -23,5 +23,7 @@ urlpatterns = [
     # accept request and reject request of a service
     path('service-request/<int:request_id>/accept/', accept_request, name='accept_request'),
     path('service-request/<int:request_id>/reject/', reject_request, name='reject_request'),
+    #get all pro by category id
+    path('get_all_pro_by_category/<int:category_id>/',getServiceProvidersByCategory, name='getServiceProvidersByCategory'),
     
 ]
